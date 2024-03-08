@@ -7,13 +7,15 @@ build-backend = "hatchling.build"
 name = "idc-index-data"
 authors = [
   { name = "Andrey Fedorov", email = "andrey.fedorov@gmail.com" },
+  { name = "Vamsi Thiriveedhi", email = "vthiriveedhi@mgh.harvard.edu" },
+  { name = "Jean-Christophe Fillion-Robin", email = "jchris.fillionr@kitware.com" },
 ]
 description = "ImagingDataCommons index to query and download data."
 readme = "README.md"
 license.file = "LICENSE"
 requires-python = ">=3.8"
 classifiers = [
-  "Development Status :: 1 - Planning",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
@@ -52,7 +54,7 @@ docs = [
 [project.urls]
 Homepage = "https://github.com/ImagingDataCommons/idc-index-data"
 "Bug Tracker" = "https://github.com/ImagingDataCommons/idc-index-data/issues"
-Discussions = "https://github.com/ImagingDataCommons/idc-index-data/discussions"
+Discussions = "https://discourse.canceridc.dev/"
 Changelog = "https://github.com/ImagingDataCommons/idc-index-data/releases"
 
 
