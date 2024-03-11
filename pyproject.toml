@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
-build-backend = "hatchling.build"
+requires = ["scikit-build-core"]
+build-backend = "scikit_build_core.build"
 
 
 [project]
@@ -32,7 +32,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dynamic = ["version"]
-dependencies = []
+dependencies = ["importlib_metadata>=2.0; python_version<'3.10'"]
 
 [project.optional-dependencies]
 test = [
@@ -58,13 +58,17 @@ Discussions = "https://discourse.canceridc.dev/"
 Changelog = "https://github.com/ImagingDataCommons/idc-index-data/releases"
 
 
-[tool.hatch]
-version.source = "vcs"
-build.hooks.vcs.version-file = "src/idc_index_data/_version.py"
+[tool.scikit-build]
+minimum-version = "0.8.2"
+build-dir = "build/{wheel_tag}"
+metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
+sdist.include = ["src/idc_index_data/_version.py"]
+wheel.platlib = false
+wheel.py-api = "py3"
 
-[tool.hatch.envs.default]
-features = ["test"]
-scripts.test = "pytest {args}"
+
+[tool.setuptools_scm]
+write_to = "src/idc_index_data/_version.py"
 
 
 [tool.pytest.ini_options]
