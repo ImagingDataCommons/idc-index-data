@@ -1,6 +1,5 @@
 name: CD
-
-on:
+"on":
   workflow_dispatch:
   pull_request:
   push:
@@ -9,35 +8,90 @@ on:
   release:
     types:
       - published
-
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: "${{ github.workflow }}-${{ github.ref }}"
   cancel-in-progress: true
-
 env:
   FORCE_COLOR: 3
-
 jobs:
   dist:
     name: Distribution build
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          pip install requests==2.31.0 pandas==2.1.1 \
+          google-cloud-bigquery==3.12.0 pyarrow==13.0.0 db-dtypes==1.1.1 \
+          pygithub==2.1.1
+        shell: bash
+
+      - name: Authorize Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: "${{ secrets.SERVICE_ACCOUNT_KEY }}"
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Run script to get the latest idc index
+        id: initialize_idc_manager_class
+        shell: python
+        run: |
+          import sys
+          import os
+          sys.path.append(".github")
+          from get_latest_index import IDCIndexDataManager
+          project_id = os.environ["GCP_PROJECT_ID"]
+          manager = IDCIndexDataManager(project_id)
+          current_index_version = manager.extract_current_index_version("src/sql/idc_index.sql")
+          latest_idc_release_version = manager.get_latest_idc_release_version()
+          if current_index_version < latest_idc_release_version:
+              manager.update_sql_queries_folder(
+                  "src/sql/", current_index_version, latest_idc_release_version
+              )
+          manager.run_queries_folder("src/sql/")
+          manager.set_multiline_output("current_index_version", int(current_index_version))
+          manager.set_multiline_output("latest_idc_release_version", int(latest_idc_release_version))
+        env:
+          GCP_PROJECT_ID: "${{ secrets.GCP_PROJECT_ID }}"
+
       - uses: hynek/build-and-inspect-python-package@v2
 
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          title:
+            "Update idc version to v${{
+            steps.initialize_idc_manager_class.outputs.latest_idc_release_version
+            }}"
+          body:
+            "Update idc version in the sql queries to v${{
+            steps.initialize_idc_manager_class.outputs.latest_idc_release_version
+            }}"
+          base: main
+          branch: update-sql-queries
+          add-paths: |
+            src/sql/*.sql
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
   publish:
-    needs: [dist]
+    needs:
+      - dist
     name: Publish to PyPI
     environment: pypi
     permissions:
       id-token: write
     runs-on: ubuntu-latest
     if: github.event_name == 'release' && github.event.action == 'published'
-
     steps:
       - uses: actions/download-artifact@v4
         with:

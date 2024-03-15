@@ -16,7 +16,11 @@ else:
 
 from ._version import version as __version__
 
-__all__ = ["__version__", "IDC_INDEX_CSV_ARCHIVE_FILEPATH"]
+__all__ = [
+    "__version__",
+    "IDC_INDEX_CSV_ARCHIVE_FILEPATH",
+    "IDC_INDEX_PARQUET_FILEPATH",
+]
 
 
 def _lookup(path: str) -> Path:
@@ -31,3 +35,4 @@ def _lookup(path: str) -> Path:
 
 
 IDC_INDEX_CSV_ARCHIVE_FILEPATH: Path = _lookup("idc_index_data/idc_index.csv.zip")
+IDC_INDEX_PARQUET_FILEPATH: Path = _lookup("idc_index_data/idc_index.parquet")
