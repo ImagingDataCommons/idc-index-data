@@ -108,7 +108,7 @@ disallow_incomplete_defs = true
 
 
 [tool.ruff]
-src = ["src"]
+src = ["src", "scripts"]
 
 [tool.ruff.lint]
 extend-select = [

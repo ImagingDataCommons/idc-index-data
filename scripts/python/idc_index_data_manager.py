@@ -25,7 +25,7 @@ class IDCIndexDataManager:
         self.client = bigquery.Client(project=project_id)
         logger.debug("IDCIndexDataManager initialized with project ID: %s", project_id)
 
-    def get_latest_idc_release_version(self) -> int:
+    def retrieve_latest_idc_release_version(self) -> int:
         """
         Retrieves the latest IDC release version from BigQuery.
 
@@ -46,46 +46,14 @@ class IDCIndexDataManager:
         )
         return latest_idc_release_version
 
-    def extract_current_index_version(self, file_path: str) -> int:
-        """
-        Extracts the current index version from the specified file.
-
-        Args:
-            file_path (str): The path to the file containing the index version.
-
-        Returns:
-            int: The current index version.
-        """
-        try:
-            with Path(file_path).open("r") as file:
-                for line in file:
-                    if "bigquery-public-data" in line:
-                        match = re.findall(r"bigquery-public-data.(\w+).(\w+)", line)
-                        if match:
-                            dataset_name, table_name = match[0]
-                            current_index_version = int(
-                                re.findall(r"idc_v(\d+)", dataset_name)[0]
-                            )
-                            logger.debug(
-                                "Extracted current index version: %d",
-                                current_index_version,
-                            )
-                            return current_index_version
-        except FileNotFoundError:
-            logger.debug("File %s not found.", file_path)
-        except Exception as e:
-            logger.debug("An error occurred while extracting index version: %s", str(e))
-        return None
-
     def update_sql_queries_folder(
-        self, dir_path: str, current_index_version: int, latest_idc_release_version: int
+        self, dir_path: str, latest_idc_release_version: int
     ) -> None:
         """
         Updates SQL queries in the specified folder.
 
         Args:
             dir_path (str): The path to the folder containing SQL queries.
-            current_index_version (int): The current index version.
             latest_idc_release_version (int): The latest IDC release version.
         """
         for file_name in os.listdir(dir_path):
@@ -94,10 +62,10 @@ class IDCIndexDataManager:
                 with Path(file_path).open("r") as file:
                     sql_query = file.read()
                 modified_sql_query = sql_query.replace(
-                    f"idc_v{current_index_version}",
+                    f"idc_current",
                     f"idc_v{latest_idc_release_version}",
                 )
-                with Path(file_path, "w").open() as file:
+                with Path(file_path).open("w") as file:
                     file.write(modified_sql_query)
                 logger.debug("Updated SQL queries in file: %s", file_path)
 
@@ -121,29 +89,21 @@ class IDCIndexDataManager:
         logger.debug("Executed SQL query from file: %s", file_path)
         return index_df, csv_file_name, parquet_file_name
 
-    def create_csv_zip_from_df(
-        self, index_df: pd.DataFrame, csv_file_name: str
+    @staticmethod
+    def generate_index_data_files(
+        index_df: pd.DataFrame, csv_file_name: str, parquet_file_name: str
     ) -> None:
         """
-        Creates a compressed CSV file from a pandas DataFrame.
+        Creates a compressed CSV file and Parquet file from a pandas DataFrame.
 
         Args:
-            index_df (pd.DataFrame): The pandas DataFrame to be saved as a CSV.
+            index_df (pd.DataFrame): The pandas DataFrame to be saved.
             csv_file_name (str): The desired name for the resulting ZIP file (including the ".csv.zip" extension).
+            parquet_file_name (str): The desired name for the resulting Parquet file.
         """
         index_df.to_csv(csv_file_name, compression={"method": "zip"}, escapechar="\\")
         logger.debug("Created CSV zip file: %s", csv_file_name)
 
-    def create_parquet_from_df(
-        self, index_df: pd.DataFrame, parquet_file_name: str
-    ) -> None:
-        """
-        Creates a Parquet file from a pandas DataFrame.
-
-        Args:
-            index_df (pd.DataFrame): The pandas DataFrame to be saved as a Parquet file.
-            parquet_file_name (str): The desired name for the resulting Parquet file.
-        """
         index_df.to_parquet(parquet_file_name)
         logger.debug("Created Parquet file: %s", parquet_file_name)
 
@@ -160,8 +120,7 @@ class IDCIndexDataManager:
                 index_df, csv_file_name, parquet_file_name = self.execute_sql_query(
                     file_path
                 )
-                self.create_csv_zip_from_df(index_df, csv_file_name)
-                self.create_parquet_from_df(index_df, parquet_file_name)
+                self.generate_index_data_files(index_df, csv_file_name, parquet_file_name)
                 logger.debug(
                     "Executed and processed SQL queries from folder: %s", dir_path
                 )
@@ -186,14 +145,9 @@ class IDCIndexDataManager:
         Runs the IDCIndexDataManager process.
         """
         latest_idc_release_version = self.get_latest_idc_release_version()
-        current_index_version = self.extract_current_index_version(
-            "src/sql/idc_index.sql"
-        )
-        self.set_multiline_output("current_index_version", str(current_index_version))
         self.set_multiline_output(
             "latest_idc_release_version", str(latest_idc_release_version)
         )
-
 
 if __name__ == "__main__":
     manager = IDCIndexDataManager("gcp-project-id")
