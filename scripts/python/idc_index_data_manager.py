@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-import re
-import uuid
 from pathlib import Path
 
 import pandas as pd
@@ -25,51 +23,7 @@ class IDCIndexDataManager:
         self.client = bigquery.Client(project=project_id)
         logger.debug("IDCIndexDataManager initialized with project ID: %s", project_id)
 
-    def retrieve_latest_idc_release_version(self) -> int:
-        """
-        Retrieves the latest IDC release version from BigQuery.
-
-        Returns:
-            int: The latest IDC release version.
-        """
-        query = """
-        SELECT
-            MAX(idc_version) AS latest_idc_release_version
-        FROM
-            `bigquery-public-data.idc_current.version_metadata`
-        """
-        query_job = self.client.query(query)
-        result = query_job.result()
-        latest_idc_release_version = int(next(result).latest_idc_release_version)
-        logger.debug(
-            "Retrieved latest IDC release version: %d", latest_idc_release_version
-        )
-        return latest_idc_release_version
-
-    def update_sql_queries_folder(
-        self, dir_path: str, latest_idc_release_version: int
-    ) -> None:
-        """
-        Updates SQL queries in the specified folder.
-
-        Args:
-            dir_path (str): The path to the folder containing SQL queries.
-            latest_idc_release_version (int): The latest IDC release version.
-        """
-        for file_name in os.listdir(dir_path):
-            if file_name.endswith(".sql"):
-                file_path = Path(dir_path) / file_name
-                with Path(file_path).open("r") as file:
-                    sql_query = file.read()
-                modified_sql_query = sql_query.replace(
-                    f"idc_current",
-                    f"idc_v{latest_idc_release_version}",
-                )
-                with Path(file_path).open("w") as file:
-                    file.write(modified_sql_query)
-                logger.debug("Updated SQL queries in file: %s", file_path)
-
-    def execute_sql_query(self, file_path: str) -> tuple[pd.DataFrame, str, str]:
+    def execute_sql_query(self, file_path: str) -> tuple[pd.DataFrame, str]:
         """
         Executes the SQL query in the specified file.
 
@@ -77,78 +31,66 @@ class IDCIndexDataManager:
             file_path (str): The path to the file containing the SQL query.
 
         Returns:
-            Tuple[pd.DataFrame, str, str]: A tuple containing the DataFrame with query results,
-            the CSV file name, and the Parquet file name.
+            Tuple[pd.DataFrame, str]: A tuple containing the DataFrame with query results,
+            the output basename.
         """
         with Path(file_path).open("r") as file:
             sql_query = file.read()
         index_df = self.client.query(sql_query).to_dataframe()
-        file_name = Path(file_path).name.split(".")[0]
-        csv_file_name = f"{file_name}.csv.zip"
-        parquet_file_name = f"{file_name}.parquet"
+        output_basename = Path(file_path).name.split(".")[0]
         logger.debug("Executed SQL query from file: %s", file_path)
-        return index_df, csv_file_name, parquet_file_name
+        return index_df, output_basename
 
-    @staticmethod
     def generate_index_data_files(
-        index_df: pd.DataFrame, csv_file_name: str, parquet_file_name: str
+        self, generate_compressed_csv: bool = True, generate_parquet: bool = False
     ) -> None:
         """
-        Creates a compressed CSV file and Parquet file from a pandas DataFrame.
+        Executes SQL queries in the specified folder and creates a
+        compressed CSV file and/or Parquet file from a pandas DataFrame.
+
+        This method iterates over all .sql files in the 'scripts/sql' directory,
+        executes each query using the 'execute_sql_query' method, and generates
+        a DataFrame 'index_df'. The DataFrame is then saved as a compressed CSV
+        and/or a Parquet file, depending on the method arguments.
 
         Args:
-            index_df (pd.DataFrame): The pandas DataFrame to be saved.
-            csv_file_name (str): The desired name for the resulting ZIP file (including the ".csv.zip" extension).
-            parquet_file_name (str): The desired name for the resulting Parquet file.
-        """
-        index_df.to_csv(csv_file_name, compression={"method": "zip"}, escapechar="\\")
-        logger.debug("Created CSV zip file: %s", csv_file_name)
+            generate_compressed_csv (bool): If True, generates a zip compressed CSV file.
+            generate_parquet (bool): If True, generates a Parquet file.
 
-        index_df.to_parquet(parquet_file_name)
-        logger.debug("Created Parquet file: %s", parquet_file_name)
-
-    def run_queries_folder(self, dir_path: str) -> None:
         """
-        Executes SQL queries in the specified folder.
 
-        Args:
-            dir_path (str): The path to the folder containing SQL query files.
-        """
-        for file_name in os.listdir(dir_path):
+        scripts_dir = Path(__file__).parent.parent
+        sql_dir = scripts_dir / "sql"
+
+        for file_name in os.listdir(sql_dir):
             if file_name.endswith(".sql"):
-                file_path = Path(dir_path) / file_name
-                index_df, csv_file_name, parquet_file_name = self.execute_sql_query(
-                    file_path
-                )
-                self.generate_index_data_files(index_df, csv_file_name, parquet_file_name)
+                file_path = Path(sql_dir) / file_name
+                index_df, output_basename = self.execute_sql_query(file_path)
                 logger.debug(
-                    "Executed and processed SQL queries from folder: %s", dir_path
+                    "Executed and processed SQL queries from file: %s", file_path
                 )
+            if generate_compressed_csv:
+                csv_file_name = f"{output_basename}.csv.zip"
+                index_df.to_csv(
+                    csv_file_name, compression={"method": "zip"}, escapechar="\\"
+                )
+                logger.debug("Created CSV zip file: %s", csv_file_name)
 
-    def set_multiline_output(self, name: str, value: str) -> None:
-        """
-        Sets multiline output with a specified name and value.
-
-        Args:
-            name (str): The name of the output.
-            value (str): The value of the output.
-        """
-        with Path(os.environ["GITHUB_OUTPUT"]).open("a") as fh:
-            delimiter = uuid.uuid1()
-            fh.write(f"{name}<<{delimiter}\n")
-            fh.write(f"{value}\n")
-            fh.write(f"{delimiter}\n")
-        logger.debug("Set multiline output with name: %s and value: %s", name, value)
+            if generate_parquet:
+                parquet_file_name = f"{output_basename}.parquet"
+                index_df.to_parquet(parquet_file_name)
+                logger.debug("Created Parquet file: %s", parquet_file_name)
 
     def run(self) -> None:
         """
         Runs the IDCIndexDataManager process.
         """
-        latest_idc_release_version = self.get_latest_idc_release_version()
-        self.set_multiline_output(
-            "latest_idc_release_version", str(latest_idc_release_version)
+        self.generate_index_data_files(
+            generate_compressed_csv=True, generate_parquet=True
         )
 
+
 if __name__ == "__main__":
-    manager = IDCIndexDataManager("gcp-project-id")
+    project_id = os.environ["GCP_PROJECT"]
+    manager = IDCIndexDataManager(project_id)
     manager.run()

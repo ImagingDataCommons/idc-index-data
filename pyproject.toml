@@ -1,5 +1,13 @@
 [build-system]
-requires = ["scikit-build-core"]
+requires = [
+  "scikit-build-core",
+  "db-dtypes",
+  "google-cloud-bigquery",
+  "pandas",
+  "pyarrow",
+  "pygithub",
+  "requests"
+]
 build-backend = "scikit_build_core.build"
 
 
