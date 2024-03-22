@@ -70,17 +70,45 @@ class IDCIndexDataManager:
                 index_df.to_parquet(parquet_file_name)
                 logger.debug("Created Parquet file: %s", parquet_file_name)
 
-    def run(self) -> None:
+    def run(
+        self, generate_compressed_csv: bool = True, generate_parquet: bool = False
+    ) -> None:
         """
-        Runs the IDCIndexDataManager to locally generate an index-data files (.czv.zip) by
+        Runs the IDCIndexDataManager to locally generate index-data files by
         running queries against the Google Cloud Platform IDC project tables.
         """
         self.generate_index_data_files(
-            generate_compressed_csv=True, generate_parquet=False
+            generate_compressed_csv=generate_compressed_csv,
+            generate_parquet=generate_parquet,
         )
 
 
 if __name__ == "__main__":
+    import argparse
+
     project_id = os.environ["GCP_PROJECT"]
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--generate-csv-archive",
+        action="store_true",
+        help="Generate idc_index.csv.zip file",
+    )
+    parser.add_argument(
+        "--generate-parquet",
+        action="store_true",
+        help="Generate idc_index.parquet file",
+    )
+
+    args = parser.parse_args()
+
+    if not any([args.generate_csv_archive, args.generate_parquet]):
+        parser.error(
+            "At least --generate-csv-archive or --generate-parquet must be specified"
+        )
+
     manager = IDCIndexDataManager(project_id)
-    manager.run()
+    manager.run(
+        generate_compressed_csv=args.generate_csv_archive,
+        generate_parquet=args.generate_parquet,
+    )

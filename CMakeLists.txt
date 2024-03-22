@@ -17,6 +17,7 @@ add_custom_command(
     ${download_dir}/idc_index.csv.zip
     #${download_dir}/idc_index.parquet
   COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/scripts/python/idc_index_data_manager.py
+    --generate-csv-archive
 )
 
 add_custom_target(run_idc_index_data_manager ALL
