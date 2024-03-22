@@ -86,7 +86,7 @@ class IDCIndexDataManager:
         Runs the IDCIndexDataManager process.
         """
         self.generate_index_data_files(
-            generate_compressed_csv=True, generate_parquet=True
+            generate_compressed_csv=True, generate_parquet=False
         )
 
 
