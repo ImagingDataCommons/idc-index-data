@@ -15,13 +15,14 @@ set(download_dir "${PROJECT_BINARY_DIR}")
 add_custom_command(
    OUTPUT
      ${download_dir}/idc_index.csv.zip
-     ${download_dir}/idc_index.parquet
+     #${download_dir}/idc_index.parquet
    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/scripts/python/idc_index_data_manager.py
 )
 
 add_custom_target(run_idc_index_data_manager ALL
-   DEPENDS ${download_dir}/idc_index.csv.zip ${download_dir}/idc_index.parquet
+   DEPENDS ${download_dir}/idc_index.csv.zip
+   #${download_dir}/idc_index.parquet
 )
 
 install(FILES ${download_dir}/idc_index.csv.zip DESTINATION "idc_index_data")
-install(FILES ${download_dir}/idc_index.parquet DESTINATION "idc_index_data")
+#install(FILES ${download_dir}/idc_index.parquet DESTINATION "idc_index_data")
