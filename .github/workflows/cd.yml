@@ -1,5 +1,6 @@
 name: CD
-"on":
+
+on:
   workflow_dispatch:
   pull_request:
   push:
@@ -8,15 +9,19 @@ name: CD
   release:
     types:
       - published
+
 concurrency:
-  group: "${{ github.workflow }}-${{ github.ref }}"
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 env:
   FORCE_COLOR: 3
+
 jobs:
   dist:
     name: Distribution build
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,8 +37,7 @@ jobs:
       - uses: hynek/build-and-inspect-python-package@v2
 
   publish:
-    needs:
-      - dist
+    needs: [dist]
     name: Publish to PyPI
     environment: pypi
     permissions:
