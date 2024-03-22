@@ -15,7 +15,6 @@ class IDCIndexDataManager:
     def __init__(self, project_id: str):
         """
         Initializes the IDCIndexDataManager using the Google Cloud Platform project ID.
-
         """
         self.project_id = project_id
         self.client = bigquery.Client(project=project_id)
@@ -47,7 +46,6 @@ class IDCIndexDataManager:
         executes each query using the 'execute_sql_query' method, and generates
         a DataFrame 'index_df'. The DataFrame is then saved as a compressed CSV
         and/or a Parquet file, depending on the method arguments.
-
         """
 
         scripts_dir = Path(__file__).parent.parent
@@ -74,7 +72,8 @@ class IDCIndexDataManager:
 
     def run(self) -> None:
         """
-        Runs the IDCIndexDataManager to locally generate a index-data file (.czv.zip) by running queries against the Google Cloud Platform IDC project tables.
+        Runs the IDCIndexDataManager to locally generate an index-data files (.czv.zip) by
+        running queries against the Google Cloud Platform IDC project tables.
         """
         self.generate_index_data_files(
             generate_compressed_csv=True, generate_parquet=False
