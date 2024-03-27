@@ -69,6 +69,24 @@ class IDCIndexDataManager:
                 index_df.to_parquet(parquet_file_name)
                 logger.debug("Created Parquet file: %s", parquet_file_name)
 
+    def retrieve_latest_idc_release_version(self) -> int:
+        """
+        Retrieves the latest IDC release version.
+
+        This function executes a SQL query on the `version_metadata` table in the
+        `idc_current` dataset of the BigQuery client. It retrieves the maximum
+        `idc_version` and returns it as an integer.
+        """
+        query = """
+        SELECT
+            MAX(idc_version) AS latest_idc_release_version
+        FROM
+            `bigquery-public-data.idc_current.version_metadata`
+        """
+        query_job = self.client.query(query)
+        result = query_job.result()
+        return int(next(result).latest_idc_release_version)
+
 
 if __name__ == "__main__":
     import argparse
@@ -89,6 +107,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Generate idc_index.parquet file",
     )
+    parser.add_argument(
+        "--retrieve-latest-idc-release-version",
+        action="store_true",
+        help="Retrieve and display the latest IDC release version",
+    )
 
     args = parser.parse_args()
 
@@ -102,6 +125,12 @@ if __name__ == "__main__":
             generate_compressed_csv=args.generate_csv_archive,
             generate_parquet=args.generate_parquet,
         )
+    elif args.retrieve_latest_idc_release_version:
+        logging.basicConfig(level=logging.ERROR, force=True)
+        logger.setLevel(logging.ERROR)
+        version = IDCIndexDataManager(
+            args.project
+        ).retrieve_latest_idc_release_version()
+        print(f"{version}")  # noqa: T201
     else:
         parser.print_help()
-
