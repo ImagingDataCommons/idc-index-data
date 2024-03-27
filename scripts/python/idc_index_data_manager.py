@@ -39,13 +39,12 @@ class IDCIndexDataManager:
         self, generate_compressed_csv: bool = True, generate_parquet: bool = False
     ) -> None:
         """
-        Executes SQL queries in the specified folder and creates a
-        compressed CSV file and/or Parquet file from a pandas DataFrame.
+        Generates index-data files locally by executing queries against
+        the Google Cloud Platform IDC project tables.
 
-        This method iterates over all .sql files in the 'scripts/sql' directory,
-        executes each query using the 'execute_sql_query' method, and generates
-        a DataFrame 'index_df'. The DataFrame is then saved as a compressed CSV
-        and/or a Parquet file, depending on the method arguments.
+        This method iterates over SQL files in the 'scripts/sql' directory,
+        executing each query using :func:`execute_sql_query` and generating a DataFrame,
+        'index_df'. The DataFrame is then saved as compressed CSV and/or Parquet file.
         """
 
         scripts_dir = Path(__file__).parent.parent
@@ -70,25 +69,16 @@ class IDCIndexDataManager:
                 index_df.to_parquet(parquet_file_name)
                 logger.debug("Created Parquet file: %s", parquet_file_name)
 
-    def run(
-        self, generate_compressed_csv: bool = True, generate_parquet: bool = False
-    ) -> None:
-        """
-        Runs the IDCIndexDataManager to locally generate index-data files by
-        running queries against the Google Cloud Platform IDC project tables.
-        """
-        self.generate_index_data_files(
-            generate_compressed_csv=generate_compressed_csv,
-            generate_parquet=generate_parquet,
-        )
-
 
 if __name__ == "__main__":
     import argparse
 
-    project_id = os.environ["GCP_PROJECT"]
-
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--project",
+        default=os.environ.get("GCP_PROJECT", None),
+        help="Google Cloud Platform Project ID (default from GCP_PROJECT env. variable)",
+    )
     parser.add_argument(
         "--generate-csv-archive",
         action="store_true",
@@ -102,13 +92,16 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if not any([args.generate_csv_archive, args.generate_parquet]):
+    if not args.project:
         parser.error(
-            "At least --generate-csv-archive or --generate-parquet must be specified"
+            "Set GCP_PROJECT environment variable or specify --project argument"
         )
 
-    manager = IDCIndexDataManager(project_id)
-    manager.run(
-        generate_compressed_csv=args.generate_csv_archive,
-        generate_parquet=args.generate_parquet,
-    )
+    if any([args.generate_csv_archive, args.generate_parquet]):
+        IDCIndexDataManager(args.project).generate_index_data_files(
+            generate_compressed_csv=args.generate_csv_archive,
+            generate_parquet=args.generate_parquet,
+        )
+    else:
+        parser.print_help()
+
