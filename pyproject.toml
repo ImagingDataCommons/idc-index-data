@@ -77,6 +77,7 @@ wheel.py-api = "py3"
 
 [tool.setuptools_scm]
 write_to = "src/idc_index_data/_version.py"
+version_scheme = "no-guess-dev"
 
 
 [tool.pytest.ini_options]
