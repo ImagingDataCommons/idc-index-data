@@ -1,5 +1,13 @@
 [build-system]
-requires = ["scikit-build-core"]
+requires = [
+  "scikit-build-core",
+  "db-dtypes",
+  "google-cloud-bigquery",
+  "pandas",
+  "pyarrow",
+  "pygithub",
+  "requests"
+]
 build-backend = "scikit_build_core.build"
 
 
@@ -69,6 +77,7 @@ wheel.py-api = "py3"
 
 [tool.setuptools_scm]
 write_to = "src/idc_index_data/_version.py"
+version_scheme = "no-guess-dev"
 
 
 [tool.pytest.ini_options]
@@ -108,7 +117,7 @@ disallow_incomplete_defs = true
 
 
 [tool.ruff]
-src = ["src"]
+src = ["src", "scripts"]
 
 [tool.ruff.lint]
 extend-select = [
