@@ -54,12 +54,6 @@ repos:
         args: []
         additional_dependencies:
           - pytest
-          # Since the "python_version" set in the "tool.mypy" section of "pyproject.toml" is "3.8",
-          # we ensure type checking also works when running the hook from Python versions above 3.8 by always
-          # installing "importlib_metadata". Note that because the "importlib.metadata.distribution"
-          # module was added in Python version 3.10 and later, this line can be removed when only supporting
-          # Python versions 3.10 and above.
-          - importlib_metadata>=2.0
 
   - repo: https://github.com/codespell-project/codespell
     rev: "v2.2.6"
