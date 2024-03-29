@@ -8,7 +8,7 @@ import nox
 
 DIR = Path(__file__).parent.resolve()
 
-nox.options.sessions = ["lint", "pylint", "tests"]
+nox.options.sessions = ["lint", "pylint", "tests"]  # Session run by default
 
 
 @nox.session
@@ -115,3 +115,75 @@ def build(session: nox.Session) -> None:
 
     session.install("build")
     session.run("python", "-m", "build")
+
+
+def _bump(session: nox.Session, name: str, script: str, files) -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--commit", action="store_true", help="Make a branch and commit."
+    )
+    parser.add_argument(
+        "version", nargs="?", help="The version to process - leave off for latest."
+    )
+    args = parser.parse_args(session.posargs)
+
+    session.install("db-dtypes")
+    session.install("google-cloud-bigquery")
+    session.install("pandas")
+    session.install("pyarrow")
+
+    if args.version is None:
+        gcp_project = "idc-external-025"
+        idc_index_version = session.run(
+            "python",
+            "scripts/python/idc_index_data_manager.py",
+            "--project",
+            gcp_project,
+            "--retrieve-latest-idc-release-version",
+            external=True,
+            silent=True,
+        ).strip()
+
+    else:
+        idc_index_version = args.version
+
+    extra = ["--quiet"] if args.commit else []
+    session.run("python", script, idc_index_version, *extra)
+
+    if args.commit:
+        session.run(
+            "git",
+            "switch",
+            "-c",
+            f"update-to-{name.replace(' ', '-').lower()}-{idc_index_version}",
+            external=True,
+        )
+        session.run("git", "add", "-u", *files, external=True)
+        session.run(
+            "git",
+            "commit",
+            "-m",
+            f"Update to {name} {idc_index_version}",
+            external=True,
+        )
+        session.log(
+            f'Complete! Now run: gh pr create --fill --body "Created by running `nox -s {session.name} -- --commit`"'
+        )
+
+
+@nox.session
+def bump(session: nox.Session) -> None:
+    """
+    Set to a new IDC index version, use -- <version>, otherwise will use the latest version.
+    """
+    files = (
+        "pyproject.toml",
+        "scripts/sql/idc_index.sql",
+        "tests/test_package.py",
+    )
+    _bump(
+        session,
+        "IDC index",
+        "scripts/python/update_idc_index_version.py",
+        files,
+    )

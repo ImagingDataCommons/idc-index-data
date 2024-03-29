@@ -99,3 +99,16 @@ pre-commit run -a
 ```
 
 to check all files.
+
+# Updating the IDC index version
+
+You can update the version using:
+
+```bash
+export GCP_PROJECT=idc-external-025
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/keyfile.json
+nox -s bump -- <version>
+```
+
+And follow the instructions it gives you. Leave off the version to bump to the
+latest version. Add `-–commit` to run the commit procedure.
