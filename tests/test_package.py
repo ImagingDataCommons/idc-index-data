@@ -2,11 +2,19 @@ from __future__ import annotations
 
 import importlib.metadata
 
+from packaging.version import Version
+
 import idc_index_data as m
+
+EXPECTED_IDC_INDEX_VERSION = 17
 
 
 def test_version():
     assert importlib.metadata.version("idc_index_data") == m.__version__
+
+
+def test_idc_index_version():
+    assert Version(m.__version__).major == EXPECTED_IDC_INDEX_VERSION
 
 
 def test_filepath():
