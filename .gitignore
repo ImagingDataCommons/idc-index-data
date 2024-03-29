@@ -156,3 +156,6 @@ Thumbs.db
 # Common editor files
 *~
 *.swp
+
+# gcp service account keys
+gha-creds-**.json
