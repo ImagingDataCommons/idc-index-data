@@ -6,13 +6,8 @@ idc-index-data: ImagingDataCommons index to query and download data.
 
 from __future__ import annotations
 
-import sys
+from importlib.metadata import distribution
 from pathlib import Path
-
-if sys.version_info >= (3, 10):
-    from importlib.metadata import distribution
-else:
-    from importlib_metadata import distribution
 
 from ._version import version as __version__
 
