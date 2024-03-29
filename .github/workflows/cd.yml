@@ -27,6 +27,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Authorize Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: "${{ secrets.SERVICE_ACCOUNT_KEY }}"
+          create_credentials_file: true
+          export_environment_variables: true
+
       - uses: hynek/build-and-inspect-python-package@v2
 
   publish:
