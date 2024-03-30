@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
 from pathlib import Path
 
@@ -187,3 +188,18 @@ def bump(session: nox.Session) -> None:
         "scripts/python/update_idc_index_version.py",
         files,
     )
+
+
+@nox.session(venv_backend="none")
+def tag_release(session: nox.Session) -> None:
+    """
+    Print instructions for tagging a release and pushing it to GitHub.
+    """
+
+    session.log("Run the following commands to make a release:")
+    txt = Path("pyproject.toml").read_text()
+    current_version = next(iter(re.finditer(r'^version = "([\d\.]+)$"', txt))).group(1)
+    print(
+        f"git tag --sign -m 'idc-index-data {current_version}' {current_version} main"
+    )
+    print(f"git push origin {current_version}")

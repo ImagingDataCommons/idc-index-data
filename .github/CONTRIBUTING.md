@@ -112,3 +112,11 @@ nox -s bump -- <version>
 
 And follow the instructions it gives you. Leave off the version to bump to the
 latest version. Add `-–commit` to run the commit procedure.
+
+# Tagging a release
+
+You can print the instructions for tagging a release using:
+
+```bash
+nox -s tag_release
+```
