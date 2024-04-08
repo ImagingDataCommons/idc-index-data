@@ -33,8 +33,6 @@ def _lookup(path: str, optional: bool = False) -> Path | None:
 
 
 IDC_INDEX_CSV_ARCHIVE_FILEPATH: Path | None = _lookup(
-    "idc_index_data/idc_index.csv.zip"
+    "idc_index_data/idc_index.csv.zip", optional=True
 )
-IDC_INDEX_PARQUET_FILEPATH: Path | None = _lookup(
-    "idc_index_data/idc_index.parquet", optional=True
-)
+IDC_INDEX_PARQUET_FILEPATH: Path | None = _lookup("idc_index_data/idc_index.parquet")
