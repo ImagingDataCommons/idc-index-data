@@ -31,6 +31,8 @@ class IDCIndexDataManager:
         with Path(file_path).open("r") as file:
             sql_query = file.read()
         index_df = self.client.query(sql_query).to_dataframe()
+        if "StudyDate" in index_df.columns:
+            index_df["StudyDate"] = index_df["StudyDate"].astype(str)
         output_basename = Path(file_path).name.split(".")[0]
         logger.debug("Executed SQL query from file: %s", file_path)
         return index_df, output_basename
