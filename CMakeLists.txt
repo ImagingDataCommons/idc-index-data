@@ -10,8 +10,8 @@ if(NOT DEFINED ENV{GCP_PROJECT})
   message(FATAL_ERROR "GCP_PROJECT env. variable is not set")
 endif()
 
-option(IDC_INDEX_DATA_GENERATE_CSV_ARCHIVE "Generate idc_index.csv.zip file" ON)
-option(IDC_INDEX_DATA_GENERATE_PARQUET "Generate idc_index.parquet file" OFF)
+option(IDC_INDEX_DATA_GENERATE_CSV_ARCHIVE "Generate idc_index.csv.zip file" OFF)
+option(IDC_INDEX_DATA_GENERATE_PARQUET "Generate idc_index.parquet file" ON)
 
 set(download_dir "${PROJECT_BINARY_DIR}")
 
