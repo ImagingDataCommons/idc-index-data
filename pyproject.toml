@@ -13,7 +13,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "idc-index-data"
-version = "17.0.1"
+version = "17.0.2"
 authors = [
   { name = "Andrey Fedorov", email = "andrey.fedorov@gmail.com" },
   { name = "Vamsi Thiriveedhi", email = "vthiriveedhi@mgh.harvard.edu" },
@@ -44,6 +44,8 @@ dependencies = []
 
 [project.optional-dependencies]
 test = [
+  "pandas",
+  "pyarrow",
   "pytest >=6",
   "pytest-cov >=3",
 ]
