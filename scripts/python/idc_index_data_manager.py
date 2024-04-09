@@ -66,7 +66,7 @@ class IDCIndexDataManager:
 
             if generate_parquet:
                 parquet_file_name = f"{output_basename}.parquet"
-                index_df.to_parquet(parquet_file_name)
+                index_df.to_parquet(parquet_file_name, compression="zstd")
                 logger.debug("Created Parquet file: %s", parquet_file_name)
 
     def retrieve_latest_idc_release_version(self) -> int:
