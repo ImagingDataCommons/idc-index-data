@@ -27,6 +27,10 @@ def test_filepath():
         assert m.IDC_INDEX_PARQUET_FILEPATH.is_file()
         assert m.IDC_INDEX_PARQUET_FILEPATH.name == "idc_index.parquet"
 
+    if m.PATHOLOGY_INDEX_PARQUET_FILEPATH is not None:
+        assert m.PATHOLOGY_INDEX_PARQUET_FILEPATH.is_file()
+        assert m.PATHOLOGY_INDEX_PARQUET_FILEPATH.name == "pathology_index.parquet"
+
 
 def test_reading_index():
     if m.IDC_INDEX_CSV_ARCHIVE_FILEPATH is not None:
@@ -37,4 +41,9 @@ def test_reading_index():
     if m.IDC_INDEX_PARQUET_FILEPATH is not None:
         assert m.IDC_INDEX_PARQUET_FILEPATH.is_file()
         df_parquet = pd.read_parquet(m.IDC_INDEX_PARQUET_FILEPATH)
+        assert not df_parquet.empty
+
+    if m.PATHOLOGY_INDEX_PARQUET_FILEPATH is not None:
+        assert m.PATHOLOGY_INDEX_PARQUET_FILEPATH.is_file()
+        df_parquet = pd.read_parquet(m.PATHOLOGY_INDEX_PARQUET_FILEPATH)
         assert not df_parquet.empty
