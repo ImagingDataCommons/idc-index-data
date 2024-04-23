@@ -1,6 +1,7 @@
 SELECT
   # collection level attributes
   ANY_VALUE(collection_id) AS collection_id,
+  ANY_VALUE(analysis_result_id) AS analysis_result_id,
   ANY_VALUE(PatientID) AS PatientID,
   SeriesInstanceUID,
   ANY_VALUE(StudyInstanceUID) AS StudyInstanceUID,
