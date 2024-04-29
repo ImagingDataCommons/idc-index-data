@@ -58,6 +58,7 @@ WITH
         license_short_name,
         series_aws_url,
         --series_gcs_url,
+        instanceCount,
         series_size_MB
          )) AS seriesLevelAttributes
   FROM
