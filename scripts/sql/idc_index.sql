@@ -26,7 +26,7 @@ WITH
     ANY_VALUE(license_short_name) AS license_short_name,
     -- download related attributes 
     ANY_VALUE(CONCAT(series_aws_url,"*")) AS series_aws_url,
-    ANY_VALUE(CONCAT(series_gcs_url,"*")) AS series_gcs_url,
+    --ANY_VALUE(CONCAT(series_gcs_url,"*")) AS series_gcs_url,
     ROUND(SUM(SAFE_CAST(instance_size AS float64))/1000000, 2) AS series_size_MB,
   FROM
     `bigquery-public-data.idc_v18.dicom_all` AS dicom_all
@@ -57,7 +57,7 @@ WITH
         SeriesNumber,
         license_short_name,
         series_aws_url,
-        series_gcs_url,
+        --series_gcs_url,
         series_size_MB
          )) AS seriesLevelAttributes
   FROM
