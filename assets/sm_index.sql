@@ -30,9 +30,57 @@ WITH
     `bigquery-public-data.idc_v18.dicom_all` AS dicom_all
   GROUP BY
     SeriesInstanceUID
-  )
+  ),
+
+SpecimenPreparationSequence_unnested AS (
+      SELECT
+        SeriesInstanceUID,
+        concept_name_code_sequence.CodeMeaning AS cnc_cm,
+        concept_name_code_sequence.CodingSchemeDesignator AS cnc_csd,
+        concept_name_code_sequence.CodeValue AS cnc_val,
+        concept_code_sequence.CodeMeaning AS ccs_cm,
+        concept_code_sequence.CodingSchemeDesignator AS ccs_csd,
+        concept_code_sequence.CodeValue AS ccs_val,
+      FROM `bigquery-public-data.idc_v18.dicom_all`,
+      UNNEST(SpecimenDescriptionSequence[SAFE_OFFSET(0)].SpecimenPreparationSequence) as preparation_unnest_step1,
+      UNNEST(preparation_unnest_step1.SpecimenPreparationStepContentItemSequence) as preparation_unnest_step2,
+      UNNEST(preparation_unnest_step2.ConceptNameCodeSequence) as concept_name_code_sequence,
+      UNNEST(preparation_unnest_step2.ConceptCodeSequence) as concept_code_sequence
+    ),
+
+    slide_embedding AS (
+    SELECT
+      SeriesInstanceUID,
+      ARRAY_AGG(DISTINCT(CONCAT(ccs_csd,":",ccs_val,":",ccs_cm))) as embedding_medium
+    FROM SpecimenPreparationSequence_unnested
+    WHERE (cnc_csd = 'SCT' and cnc_val = '430863003') -- CodeMeaning is 'Embedding medium'
+    GROUP BY SeriesInstanceUID
+    ),
+
+    slide_fixative AS (
+    SELECT
+      SeriesInstanceUID,
+      ARRAY_AGG(DISTINCT(CONCAT(ccs_csd,":",ccs_val,":",ccs_cm))) as tissue_fixative
+    FROM SpecimenPreparationSequence_unnested
+    WHERE (cnc_csd = 'SCT' and cnc_val = '430864009') -- CodeMeaning is 'Tissue Fixative'
+    GROUP BY SeriesInstanceUID
+    ),
+
+    slide_staining AS (
+    SELECT
+      SeriesInstanceUID,
+      ARRAY_AGG(DISTINCT(CONCAT(ccs_csd,":",ccs_val,":",ccs_cm))) as slide_staining,
+    FROM SpecimenPreparationSequence_unnested
+    WHERE (cnc_csd = 'SCT' and cnc_val = '424361007') -- CodeMeaning is 'Using substance'
+    GROUP BY SeriesInstanceUID
+    )
+
+
 SELECT
-  SeriesInstanceUID,
+  slide_embedding.* except (SeriesInstanceUID),
+  slide_fixative.* except (SeriesInstanceUID),
+  slide_staining.* except (SeriesInstanceUID),
+  temp_table.SeriesInstanceUID,
   if(COALESCE(min_spacing_0, fg_min_spacing_0) = 0, 0,
     round(COALESCE(min_spacing_0, fg_min_spacing_0) ,CAST(2 -1-floor(log10(abs(COALESCE(min_spacing_0, fg_min_spacing_0) ))) AS INT64))) AS min_PixelSpacing_2sf,
   COALESCE(max_TotalPixelMatrixColumns, max_Columns) AS max_TotalPixelMatrixColumns,
@@ -47,5 +95,8 @@ SELECT
   SPLIT(illuminationType_code_str,":")[SAFE_OFFSET(2)] as illuminationType_CodeMeaning,
 FROM
   temp_table
+JOIN slide_embedding on temp_table.SeriesInstanceUID = slide_embedding.SeriesInstanceUID
+JOIN slide_fixative on temp_table.SeriesInstanceUID = slide_fixative.SeriesInstanceUID
+JOIN slide_staining on temp_table.SeriesInstanceUID = slide_staining.SeriesInstanceUID
 WHERE
   Modality = "SM"
