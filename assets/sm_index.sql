@@ -95,8 +95,8 @@ SELECT
   SPLIT(illuminationType_code_str,":")[SAFE_OFFSET(2)] as illuminationType_CodeMeaning,
 FROM
   temp_table
-JOIN slide_embedding on temp_table.SeriesInstanceUID = slide_embedding.SeriesInstanceUID
-JOIN slide_fixative on temp_table.SeriesInstanceUID = slide_fixative.SeriesInstanceUID
-JOIN slide_staining on temp_table.SeriesInstanceUID = slide_staining.SeriesInstanceUID
+LEFT JOIN slide_embedding on temp_table.SeriesInstanceUID = slide_embedding.SeriesInstanceUID
+LEFT JOIN slide_fixative on temp_table.SeriesInstanceUID = slide_fixative.SeriesInstanceUID
+LEFT JOIN slide_staining on temp_table.SeriesInstanceUID = slide_staining.SeriesInstanceUID
 WHERE
   Modality = "SM"
