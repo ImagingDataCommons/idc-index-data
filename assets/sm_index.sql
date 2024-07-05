@@ -51,7 +51,7 @@ SpecimenPreparationSequence_unnested AS (
     slide_embedding AS (
     SELECT
       SeriesInstanceUID,
-      ARRAY_AGG(DISTINCT(CONCAT(ccs_csd,":",ccs_val,":",ccs_cm))) as embedding_medium
+      ARRAY_AGG(DISTINCT(CONCAT(ccs_cm,":",ccs_csd,":",ccs_val))) as embeddingMedium_code_str
     FROM SpecimenPreparationSequence_unnested
     WHERE (cnc_csd = 'SCT' and cnc_val = '430863003') -- CodeMeaning is 'Embedding medium'
     GROUP BY SeriesInstanceUID
@@ -60,7 +60,7 @@ SpecimenPreparationSequence_unnested AS (
     slide_fixative AS (
     SELECT
       SeriesInstanceUID,
-      ARRAY_AGG(DISTINCT(CONCAT(ccs_csd,":",ccs_val,":",ccs_cm))) as tissue_fixative
+      ARRAY_AGG(DISTINCT(CONCAT(ccs_cm, ":", ccs_csd,":",ccs_val))) as tissueFixative_code_str
     FROM SpecimenPreparationSequence_unnested
     WHERE (cnc_csd = 'SCT' and cnc_val = '430864009') -- CodeMeaning is 'Tissue Fixative'
     GROUP BY SeriesInstanceUID
@@ -69,18 +69,48 @@ SpecimenPreparationSequence_unnested AS (
     slide_staining AS (
     SELECT
       SeriesInstanceUID,
-      ARRAY_AGG(DISTINCT(CONCAT(ccs_csd,":",ccs_val,":",ccs_cm))) as slide_staining,
+      ARRAY_AGG(DISTINCT(CONCAT(ccs_cm, ":", ccs_csd,":",ccs_val))) as staining_usingSubstance_code_str,
     FROM SpecimenPreparationSequence_unnested
     WHERE (cnc_csd = 'SCT' and cnc_val = '424361007') -- CodeMeaning is 'Using substance'
     GROUP BY SeriesInstanceUID
     )
 
-
 SELECT
-  slide_embedding.* except (SeriesInstanceUID),
-  slide_fixative.* except (SeriesInstanceUID),
-  slide_staining.* except (SeriesInstanceUID),
   temp_table.SeriesInstanceUID,
+  -- Embedding Medium
+  ARRAY(
+    SELECT IF(code IS NULL, NULL, SPLIT(code, ':')[SAFE_OFFSET(0)])
+    FROM UNNEST(embeddingMedium_code_str) AS code
+  ) AS embeddingMedium_CodeMeaning,
+  ARRAY(
+    SELECT IF(code IS NULL, NULL,
+              IF(STRPOS(code, ':') = 0, NULL,
+                 SUBSTR(code, STRPOS(code, ':') + 1)))
+    FROM UNNEST(embeddingMedium_code_str) AS code
+  ) AS embeddingMedium_code_designator_value_str,
+  -- Tissue Fixative
+  ARRAY(
+    SELECT IF(code IS NULL, NULL, SPLIT(code, ':')[SAFE_OFFSET(0)])
+    FROM UNNEST(tissueFixative_code_str) AS code
+  ) AS tissueFixative_CodeMeaning,
+  ARRAY(
+    SELECT IF(code IS NULL, NULL,
+              IF(STRPOS(code, ':') = 0, NULL,
+                 SUBSTR(code, STRPOS(code, ':') + 1)))
+    FROM UNNEST(tissueFixative_code_str) AS code
+  ) AS tissueFixative_code_designator_value_str,
+  -- Staining using substance
+  ARRAY(
+    SELECT IF(code IS NULL, NULL, SPLIT(code, ':')[SAFE_OFFSET(0)])
+    FROM UNNEST(staining_usingSubstance_code_str) AS code
+  ) AS staining_usingSubstance_CodeMeaning,
+  ARRAY(
+    SELECT IF(code IS NULL, NULL,
+              IF(STRPOS(code, ':') = 0, NULL,
+                 SUBSTR(code, STRPOS(code, ':') + 1)))
+    FROM UNNEST(staining_usingSubstance_code_str) AS code
+  ) AS staining_usingSubstance_code_designator_value_str,
+
   if(COALESCE(min_spacing_0, fg_min_spacing_0) = 0, 0,
     round(COALESCE(min_spacing_0, fg_min_spacing_0) ,CAST(2 -1-floor(log10(abs(COALESCE(min_spacing_0, fg_min_spacing_0) ))) AS INT64))) AS min_PixelSpacing_2sf,
   COALESCE(max_TotalPixelMatrixColumns, max_Columns) AS max_TotalPixelMatrixColumns,
