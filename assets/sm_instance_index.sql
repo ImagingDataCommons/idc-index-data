@@ -101,6 +101,7 @@ SELECT
   SAFE_CAST(SharedFunctionalGroupsSequence[SAFE_OFFSET(0)].PixelMeasuresSequence[SAFE_OFFSET(0)]. PixelSpacing[SAFE_OFFSET(0)] AS FLOAT64) AS PixelSpacing_0,
   dicom_all.ImageType,
   dicom_all.TransferSyntaxUID,
+  dicom_all.instance_size,
   -- attributes needed to retrieve the selected instances/files
   dicom_all.crdc_instance_uuid
 FROM
