@@ -7,14 +7,14 @@ DECLARE union_all_query STRING;
 SET idc_versions = (
   SELECT [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
   --SELECT ARRAY_AGG(idc_version)
-  --FROM 
+  --FROM
   --`bigquery-public-data.idc_current.version_metadata`
 );
 
 SET latest_idc_version = (
   SELECT 18
   --SELECT max(idc_version)
-  --FROM 
+  --FROM
   --`bigquery-public-data.idc_current.version_metadata`
 );
 
@@ -22,8 +22,8 @@ SET latest_idc_version = (
 SET union_all_query = (
   SELECT STRING_AGG(
     FORMAT("""
-    SELECT 
-    %d AS idc_version, 
+    SELECT
+    %d AS idc_version,
     collection_id,
     PatientID,
     SeriesInstanceUID,
@@ -49,7 +49,7 @@ EXECUTE IMMEDIATE FORMAT("""
 WITH all_versions AS (
   %s
 )
-SELECT  
+SELECT
   collection_id,
   PatientID,
   SeriesInstanceUID,
@@ -58,9 +58,9 @@ SELECT
   gcs_bucket,
   crdc_series_uuid,
   series_size_MB,
-  CASE 
+  CASE
   WHEN gcs_bucket='public-datasets-idc' THEN CONCAT('s3://','idc-open-data/',crdc_series_uuid, '/*')
-  WHEN gcs_bucket='idc-open-idc1' THEN CONCAT('s3://','idc-open-data/',crdc_series_uuid, '/*')
+  WHEN gcs_bucket='idc-open-idc1' THEN CONCAT('s3://','idc-open-data-two/',crdc_series_uuid, '/*')
   WHEN gcs_bucket='idc-open-cr' THEN CONCAT('s3://','idc-open-data-cr/',crdc_series_uuid, '/*')
     END AS series_aws_url,
   MIN(idc_version) AS min_idc_version,
@@ -71,7 +71,7 @@ where gcs_bucket not in ('idc-open-idc')
 --distinct series_instance_uid from `idc-dev-etl.idc_v18_dev.all_joined_public`
 --where
 --series_instance_uid not in (select distinct seriesInstanceUID from bigquery-public-data.idc_current.dicom_all))
-GROUP BY   
+GROUP BY
  1,2,3,4,5,6,7,8
 """, union_all_query
 );
