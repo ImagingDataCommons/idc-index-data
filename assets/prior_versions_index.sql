@@ -1,22 +1,17 @@
 -- Step 1: Declare variables
 DECLARE idc_versions ARRAY<INT64>;
-DECLARE latest_idc_version INT64;
+DECLARE latest_idc_version INT64 DEFAULT 18;
 DECLARE union_all_query STRING;
 
 -- Step 2: Get all idc_versions
 SET idc_versions = (
-  SELECT [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+  SELECT GENERATE_ARRAY(1, latest_idc_version)
+  -- SELECT [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
   --SELECT ARRAY_AGG(idc_version)
   --FROM
   --`bigquery-public-data.idc_current.version_metadata`
 );
 
-SET latest_idc_version = (
-  SELECT 18
-  --SELECT max(idc_version)
-  --FROM
-  --`bigquery-public-data.idc_current.version_metadata`
-);
 
 -- Step 3: Generate the UNION ALL query dynamically
 SET union_all_query = (
@@ -34,11 +29,12 @@ SET union_all_query = (
     ROUND(SUM(SAFE_CAST(instance_size AS float64))/1000000, 2) AS series_size_MB,
   FROM
   `bigquery-public-data.idc_v%d.dicom_all` AS dicom_all
-  where SeriesInstanceUID not in (select distinct seriesInstanceUID from `bigquery-public-data.idc_v%d.dicom_all`)
+  where crdc_series_uuid not in (select distinct crdc_series_uuid from `bigquery-public-data.idc_v%d.dicom_all`)
   GROUP BY
   1,2,3,4,5,6,7,8
 
-""", version, version, latest_idc_version),
+  """, 
+  version, version, latest_idc_version),
     " UNION ALL "
   )
   FROM UNNEST(idc_versions) AS version
@@ -59,6 +55,10 @@ SELECT
   crdc_series_uuid,
   series_size_MB,
   CASE
+  # map GCS bucket to AWS bucket, since for idc-index we prefer AWS
+  # if new buckets are included in IDC, this will need to be updated!
+  # map GCS bucket to AWS bucket, since for idc-index we prefer AWS
+  # if new buckets are included in IDC, this will need to be updated!
   WHEN gcs_bucket='public-datasets-idc' THEN CONCAT('s3://','idc-open-data/',crdc_series_uuid, '/*')
   WHEN gcs_bucket='idc-open-idc1' THEN CONCAT('s3://','idc-open-data-two/',crdc_series_uuid, '/*')
   WHEN gcs_bucket='idc-open-cr' THEN CONCAT('s3://','idc-open-data-cr/',crdc_series_uuid, '/*')
@@ -73,5 +73,6 @@ where gcs_bucket not in ('idc-open-idc')
 --series_instance_uid not in (select distinct seriesInstanceUID from bigquery-public-data.idc_current.dicom_all))
 GROUP BY
  1,2,3,4,5,6,7,8
-""", union_all_query
+  """, 
+  union_all_query
 );
