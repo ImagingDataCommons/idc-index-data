@@ -38,3 +38,8 @@ def test_reading_index():
         assert m.IDC_INDEX_PARQUET_FILEPATH.is_file()
         df_parquet = pd.read_parquet(m.IDC_INDEX_PARQUET_FILEPATH)
         assert not df_parquet.empty
+
+    if m.PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH is not None:
+        assert m.PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH.is_file()
+        df_parquet = pd.read_parquet(m.PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH)
+        assert not df_parquet.empty
