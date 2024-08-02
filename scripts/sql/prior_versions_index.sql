@@ -1,3 +1,6 @@
+-- For details on the syntax, see
+-- https://cloud.google.com/bigquery/docs/reference/standard-sql/procedural-language
+--
 -- Step 1: Declare variables
 DECLARE idc_versions ARRAY<INT64>;
 DECLARE latest_idc_version INT64 DEFAULT 18;
