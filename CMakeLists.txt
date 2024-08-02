@@ -19,6 +19,7 @@ add_custom_command(
   OUTPUT
     $<$<BOOL:${IDC_INDEX_DATA_GENERATE_CSV_ARCHIVE}>:${download_dir}/idc_index.csv.zip>
     $<$<BOOL:${IDC_INDEX_DATA_GENERATE_PARQUET}>:${download_dir}/idc_index.parquet>
+    $<$<BOOL:${IDC_INDEX_DATA_GENERATE_PARQUET}>:${download_dir}/prior_versions_index.parquet>
   COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/scripts/python/idc_index_data_manager.py
     $<$<BOOL:${IDC_INDEX_DATA_GENERATE_CSV_ARCHIVE}>:--generate-csv-archive>
     $<$<BOOL:${IDC_INDEX_DATA_GENERATE_PARQUET}>:--generate-parquet>
@@ -28,10 +29,12 @@ add_custom_target(run_idc_index_data_manager ALL
   DEPENDS
     $<$<BOOL:${IDC_INDEX_DATA_GENERATE_CSV_ARCHIVE}>:${download_dir}/idc_index.csv.zip>
     $<$<BOOL:${IDC_INDEX_DATA_GENERATE_PARQUET}>:${download_dir}/idc_index.parquet>
+    $<$<BOOL:${IDC_INDEX_DATA_GENERATE_PARQUET}>:${download_dir}/prior_versions_index.parquet>
 )
 
 install(
   FILES
     $<$<BOOL:${IDC_INDEX_DATA_GENERATE_CSV_ARCHIVE}>:${download_dir}/idc_index.csv.zip>
     $<$<BOOL:${IDC_INDEX_DATA_GENERATE_PARQUET}>:${download_dir}/idc_index.parquet>
+    $<$<BOOL:${IDC_INDEX_DATA_GENERATE_PARQUET}>:${download_dir}/prior_versions_index.parquet>
   DESTINATION "idc_index_data")
