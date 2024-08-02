@@ -15,6 +15,7 @@ __all__ = [
     "__version__",
     "IDC_INDEX_CSV_ARCHIVE_FILEPATH",
     "IDC_INDEX_PARQUET_FILEPATH",
+    "PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH",
 ]
 
 
@@ -36,3 +37,6 @@ IDC_INDEX_CSV_ARCHIVE_FILEPATH: Path | None = _lookup(
     "idc_index_data/idc_index.csv.zip", optional=True
 )
 IDC_INDEX_PARQUET_FILEPATH: Path | None = _lookup("idc_index_data/idc_index.parquet")
+PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH: Path | None = _lookup(
+    "idc_index_data/prior_versions_index.parquet"
+)
