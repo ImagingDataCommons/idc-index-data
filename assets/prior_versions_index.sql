@@ -12,7 +12,6 @@ SET idc_versions = (
   --`bigquery-public-data.idc_current.version_metadata`
 );
 
-
 -- Step 3: Generate the UNION ALL query dynamically
 SET union_all_query = (
   SELECT STRING_AGG(
@@ -33,7 +32,7 @@ SET union_all_query = (
   GROUP BY
   1,2,3,4,5,6,7,8
 
-  """, 
+  """,
   version, version, latest_idc_version),
     " UNION ALL "
   )
@@ -55,10 +54,10 @@ SELECT
   crdc_series_uuid,
   series_size_MB,
   CASE
+
   # map GCS bucket to AWS bucket, since for idc-index we prefer AWS
   # if new buckets are included in IDC, this will need to be updated!
-  # map GCS bucket to AWS bucket, since for idc-index we prefer AWS
-  # if new buckets are included in IDC, this will need to be updated!
+
   WHEN gcs_bucket='public-datasets-idc' THEN CONCAT('s3://','idc-open-data/',crdc_series_uuid, '/*')
   WHEN gcs_bucket='idc-open-idc1' THEN CONCAT('s3://','idc-open-data-two/',crdc_series_uuid, '/*')
   WHEN gcs_bucket='idc-open-cr' THEN CONCAT('s3://','idc-open-data-cr/',crdc_series_uuid, '/*')
@@ -66,13 +65,15 @@ SELECT
   MIN(idc_version) AS min_idc_version,
   MAX(idc_version) AS max_idc_version
 FROM all_versions
+
 where gcs_bucket not in ('idc-open-idc')
---and seriesInstanceUID not in (select
---distinct series_instance_uid from `idc-dev-etl.idc_v18_dev.all_joined_public`
---where
---series_instance_uid not in (select distinct seriesInstanceUID from bigquery-public-data.idc_current.dicom_all))
+
+#per @bcli4d:idc-open-idc was our public bucket before we moved most data to the Google owned public-datasets-idc.
+#We decided at the time to not touch BQ. To deal with this and other cases where some metadata can change (Licences),
+#we include the mutable_metadata table which maps crdc_instance_uuid to current gcs_url, aws_url, license, doi.
+
 GROUP BY
  1,2,3,4,5,6,7,8
-  """, 
+  """,
   union_all_query
 );
