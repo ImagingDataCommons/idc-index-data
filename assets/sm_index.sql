@@ -5,7 +5,7 @@
 -- SELECT
 --   * EXCEPT(Modality)
 -- FROM
---   `bigquery-public-data.idc_v18.dicom_metadata_curated_series_level`
+--   `bigquery-public-data.idc_v19.dicom_metadata_curated_series_level`
 -- WHERE
 --   Modality = "SM"
 
@@ -27,7 +27,7 @@ WITH
 
     ARRAY_AGG(DISTINCT(CONCAT(OpticalPathSequence[SAFE_OFFSET(0)].IlluminationTypeCodeSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", OpticalPathSequence[SAFE_OFFSET(0)].IlluminationTypeCodeSequence[SAFE_OFFSET(0)].CodeValue, ":", OpticalPathSequence[SAFE_OFFSET(0)].IlluminationTypeCodeSequence[SAFE_OFFSET(0)].CodeMeaning)) IGNORE NULLS)[SAFE_OFFSET(0)] AS illuminationType_code_str,
   FROM
-    `bigquery-public-data.idc_v18.dicom_all` AS dicom_all
+    `bigquery-public-data.idc_v19.dicom_all` AS dicom_all
   GROUP BY
     SeriesInstanceUID
   ),
@@ -41,7 +41,7 @@ SpecimenPreparationSequence_unnested AS (
         concept_code_sequence.CodeMeaning AS ccs_cm,
         concept_code_sequence.CodingSchemeDesignator AS ccs_csd,
         concept_code_sequence.CodeValue AS ccs_val,
-      FROM `bigquery-public-data.idc_v18.dicom_all`,
+      FROM `bigquery-public-data.idc_v19.dicom_all`,
       UNNEST(SpecimenDescriptionSequence[SAFE_OFFSET(0)].SpecimenPreparationSequence) as preparation_unnest_step1,
       UNNEST(preparation_unnest_step1.SpecimenPreparationStepContentItemSequence) as preparation_unnest_step2,
       UNNEST(preparation_unnest_step2.ConceptNameCodeSequence) as concept_name_code_sequence,
