@@ -26,9 +26,9 @@ SELECT
   ANY_VALUE(CONCAT(series_aws_url,"*")) AS series_aws_url,
   ROUND(SUM(SAFE_CAST(instance_size AS float64))/1000000, 2) AS series_size_MB,
 FROM
-  `bigquery-public-data.idc_v18.dicom_all` AS dicom_all
+  `bigquery-public-data.idc_v19.dicom_all` AS dicom_all
 JOIN
-  `bigquery-public-data.idc_v18.dicom_metadata_curated` AS dicom_curated
+  `bigquery-public-data.idc_v19.dicom_metadata_curated` AS dicom_curated
 ON
   dicom_all.SOPInstanceUID = dicom_curated.SOPInstanceUID
 GROUP BY
