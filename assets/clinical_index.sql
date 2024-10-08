@@ -4,6 +4,7 @@ SELECT
   SPLIT(table_name,'.')[SAFE_OFFSET(2)] AS short_table_name,
   `column`,
   column_label,
+  `values`
 FROM
   `bigquery-public-data.idc_v19_clinical.column_metadata`
 ORDER BY
