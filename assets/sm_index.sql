@@ -26,6 +26,10 @@ WITH
     ARRAY_AGG(DISTINCT(CONCAT(SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureModifierSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureModifierSequence[SAFE_OFFSET(0)].CodeValue, ":", SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureModifierSequence[SAFE_OFFSET(0)].CodeMeaning)) IGNORE NULLS)[SAFE_OFFSET(0)] AS primaryAnatomicStructureModifier_code_str,
 
     ARRAY_AGG(DISTINCT(CONCAT(OpticalPathSequence[SAFE_OFFSET(0)].IlluminationTypeCodeSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", OpticalPathSequence[SAFE_OFFSET(0)].IlluminationTypeCodeSequence[SAFE_OFFSET(0)].CodeValue, ":", OpticalPathSequence[SAFE_OFFSET(0)].IlluminationTypeCodeSequence[SAFE_OFFSET(0)].CodeMeaning)) IGNORE NULLS)[SAFE_OFFSET(0)] AS illuminationType_code_str,
+
+    ARRAY_AGG(DISTINCT(CONCAT(AdmittingDiagnosesCodeSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", AdmittingDiagnosesCodeSequence[SAFE_OFFSET(0)].CodeValue, ":", AdmittingDiagnosesCodeSequence[SAFE_OFFSET(0)].CodeMeaning)) IGNORE NULLS)[SAFE_OFFSET(0)] AS admittingDiagnosis_code_str
+
+
   FROM
     `bigquery-public-data.idc_v19.dicom_all` AS dicom_all
   GROUP BY
@@ -123,6 +127,9 @@ SELECT
 
   CONCAT(SPLIT(illuminationType_code_str,":")[SAFE_OFFSET(0)],":",SPLIT(illuminationType_code_str,":")[SAFE_OFFSET(1)]) as illuminationType_code_designator_value_str,
   SPLIT(illuminationType_code_str,":")[SAFE_OFFSET(2)] as illuminationType_CodeMeaning,
+
+  CONCAT(SPLIT(admittingDiagnosis_code_str,":")[SAFE_OFFSET(0)],":",SPLIT(admittingDiagnosis_code_str,":")[SAFE_OFFSET(1)]) as admittingDiagnosis_code_designator_value_str,
+  SPLIT(admittingDiagnosis_code_str,":")[SAFE_OFFSET(2)] as admittingDiagnosis_CodeMeaning,
 FROM
   temp_table
 LEFT JOIN slide_embedding on temp_table.SeriesInstanceUID = slide_embedding.SeriesInstanceUID
