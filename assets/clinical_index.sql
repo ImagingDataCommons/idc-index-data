@@ -6,6 +6,6 @@ SELECT
   column_label,
   `values`
 FROM
-  `bigquery-public-data.idc_v19_clinical.column_metadata`
+  `bigquery-public-data.idc_v20_clinical.column_metadata`
 ORDER BY
   collection_id, table_name

@@ -7,7 +7,7 @@ from packaging.version import Version
 
 import idc_index_data as m
 
-EXPECTED_IDC_INDEX_VERSION = 19
+EXPECTED_IDC_INDEX_VERSION = 20
 
 
 def test_version():
