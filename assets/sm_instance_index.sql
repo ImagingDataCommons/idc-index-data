@@ -102,6 +102,8 @@ SELECT
   dicom_all.ImageType,
   dicom_all.TransferSyntaxUID,
   dicom_all.instance_size,
+  dicom_all.TotalPixelMatrixColumns, 
+  dicom_all.TotalPixelMatrixRows,
   -- attributes needed to retrieve the selected instances/files
   dicom_all.crdc_instance_uuid
 FROM
