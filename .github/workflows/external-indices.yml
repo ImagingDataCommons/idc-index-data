@@ -46,7 +46,7 @@ jobs:
 
       - name: Execute SQL Query and Generate Parquet Files
         run: |
-          python scripts/python/external-indices.py
+          python scripts/python/generate-indices.py
         env:
           PROJECT_ID: ${{ env.GCP_PROJECT }}
 

@@ -11,6 +11,7 @@ def main():
     project_id = os.getenv("PROJECT_ID")
     manager = IDCIndexDataManager(project_id=project_id)
     scripts_dir = Path(__file__).resolve().parent.parent
+
     assets_dir = scripts_dir.parent / "assets"
 
     # Collecting all .sql files from sql_dir and assets_dir
@@ -18,6 +19,15 @@ def main():
 
     for file_name in sql_files:
         file_path = assets_dir / file_name
+        index_df, output_basename = manager.execute_sql_query(file_path)
+        index_df.to_parquet(f"{output_basename}.parquet")
+
+    core_indices_dir = scripts_dir.parent / "scripts" / "sql"
+
+    sql_files = [f for f in os.listdir(core_indices_dir) if f.endswith(".sql")]
+
+    for file_name in sql_files:
+        file_path = core_indices_dir / file_name
         index_df, output_basename = manager.execute_sql_query(file_path)
         index_df.to_parquet(f"{output_basename}.parquet")
 
