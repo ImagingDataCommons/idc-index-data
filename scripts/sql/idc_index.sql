@@ -23,6 +23,9 @@ SELECT
   COUNT(dicom_all.SOPInstanceUID) AS instanceCount,
   ANY_VALUE(license_short_name) as license_short_name,
   # download related attributes
+  ANY_VALUE(aws_bucket)  AS aws_bucket,
+  ANY_VALUE(crdc_series_uuid) AS crdc_series_uuid,
+  # series_aws_url will be phased out in favor of constructing URL from bucket+UUID
   ANY_VALUE(CONCAT(series_aws_url,"*")) AS series_aws_url,
   ROUND(SUM(SAFE_CAST(instance_size AS float64))/1000000, 2) AS series_size_MB,
 FROM
