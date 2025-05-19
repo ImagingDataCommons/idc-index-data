@@ -31,7 +31,7 @@ WITH
 
 
   FROM
-    `bigquery-public-data.idc_v20.dicom_all` AS dicom_all
+    `bigquery-public-data.idc_v21.dicom_all` AS dicom_all
   GROUP BY
     SeriesInstanceUID
   ),
@@ -45,7 +45,7 @@ SpecimenPreparationSequence_unnested AS (
         concept_code_sequence.CodeMeaning AS ccs_cm,
         concept_code_sequence.CodingSchemeDesignator AS ccs_csd,
         concept_code_sequence.CodeValue AS ccs_val,
-      FROM `bigquery-public-data.idc_v20.dicom_all`,
+      FROM `bigquery-public-data.idc_v21.dicom_all`,
       UNNEST(SpecimenDescriptionSequence[SAFE_OFFSET(0)].SpecimenPreparationSequence) as preparation_unnest_step1,
       UNNEST(preparation_unnest_step1.SpecimenPreparationStepContentItemSequence) as preparation_unnest_step2,
       UNNEST(preparation_unnest_step2.ConceptNameCodeSequence) as concept_name_code_sequence,
