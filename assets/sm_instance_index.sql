@@ -9,7 +9,7 @@ WITH
     concept_code_sequence.CodingSchemeDesignator AS ccs_csd,
     concept_code_sequence.CodeValue AS ccs_val,
   FROM
-    `bigquery-public-data.idc_v21.dicom_all`,
+    `bigquery-public-data.idc_v22.dicom_all`,
     UNNEST(SpecimenDescriptionSequence[SAFE_OFFSET(0)].SpecimenPreparationSequence) AS preparation_unnest_step1,
     UNNEST(preparation_unnest_step1.SpecimenPreparationStepContentItemSequence) AS preparation_unnest_step2,
     UNNEST(preparation_unnest_step2.ConceptNameCodeSequence) AS concept_name_code_sequence,
@@ -107,7 +107,7 @@ SELECT
   -- attributes needed to retrieve the selected instances/files
   dicom_all.crdc_instance_uuid
 FROM
-  `bigquery-public-data.idc_v21.dicom_all` AS dicom_all
+  `bigquery-public-data.idc_v22.dicom_all` AS dicom_all
 LEFT JOIN
   slide_embedding
 ON
