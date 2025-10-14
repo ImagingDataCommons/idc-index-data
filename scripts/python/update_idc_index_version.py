@@ -25,7 +25,8 @@ def _log(txt, verbose=True):
 
 
 def _update_file(filepath, regex, replacement):
-    msg = "Updating %s" % os.path.relpath(str(filepath), ROOT_DIR)
+    rel_path = os.path.relpath(str(filepath), ROOT_DIR)
+    msg = f"Updating {rel_path}"
     with _log(msg):
         pattern = re.compile(regex)
         with filepath.open() as doc_file:

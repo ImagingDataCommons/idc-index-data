@@ -52,8 +52,8 @@ class IDCIndexDataManager:
         scripts_dir = Path(__file__).parent.parent
         sql_dir = scripts_dir / "sql"
 
-        for file_name in os.listdir(sql_dir):
-            if file_name.endswith(".sql"):
+        for file_name in Path.iterdir(sql_dir):
+            if str(file_name).endswith(".sql"):
                 file_path = Path(sql_dir) / file_name
                 index_df, output_basename = self.execute_sql_query(file_path)
                 logger.debug(

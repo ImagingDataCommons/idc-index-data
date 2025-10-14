@@ -15,7 +15,7 @@ def main():
     assets_dir = scripts_dir.parent / "assets"
 
     # Collecting all .sql files from sql_dir and assets_dir
-    sql_files = [f for f in os.listdir(assets_dir) if f.endswith(".sql")]
+    sql_files = [f for f in Path.iterdir(assets_dir) if str(f).endswith(".sql")]
 
     for file_name in sql_files:
         file_path = assets_dir / file_name
@@ -24,7 +24,7 @@ def main():
 
     core_indices_dir = scripts_dir.parent / "scripts" / "sql"
 
-    sql_files = [f for f in os.listdir(core_indices_dir) if f.endswith(".sql")]
+    sql_files = [f for f in Path.iterdir(core_indices_dir) if str(f).endswith(".sql")]
 
     for file_name in sql_files:
         file_path = core_indices_dir / file_name
