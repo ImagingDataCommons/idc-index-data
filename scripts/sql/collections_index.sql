@@ -1,0 +1,15 @@
+SELECT
+  collection_name,
+  collection_id,
+  CancerTypes,
+  TumorLocations,
+  Subjects,
+  Species,
+  Sources,
+  SupportingData,
+  Program,
+  Status,
+  Updated,
+  Description
+FROM
+  `bigquery-public-data.idc_v22.original_collections_metadata`
