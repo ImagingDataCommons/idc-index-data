@@ -18,7 +18,7 @@ SELECT
   # unique identifier of the DICOM study (DICOM attribute)
   ANY_VALUE(StudyInstanceUID) AS StudyInstanceUID,
   # description:
-  # Digital Object Identifier of the dataset that contains the given 
+  # Digital Object Identifier of the dataset that contains the given
   # series; follow this DOI to learn more about the activity that produced
   # this series
   ANY_VALUE(source_DOI) AS source_DOI,

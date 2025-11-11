@@ -140,7 +140,7 @@ SELECT
   # power of the objective lens of the equipment used to digitize the slide
   SAFE_CAST(ObjectiveLensPower as INT) as ObjectiveLensPower,
   # description:
-  # anatomic location from where the imaged specimen was collected 
+  # anatomic location from where the imaged specimen was collected
   CONCAT(SPLIT(primaryAnatomicStructure_code_str,":")[SAFE_OFFSET(0)],":",SPLIT(primaryAnatomicStructure_code_str,":")[SAFE_OFFSET(1)]) as primaryAnatomicStructure_code_designator_value_str,
   # description:
   # code tuple for the anatomic location from where the imaged specimen was collected
