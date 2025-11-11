@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 from pathlib import Path
 
 import pandas as pd
+import pyarrow as pa
 from google.cloud import bigquery
 
 logging.basicConfig(level=logging.DEBUG)
@@ -36,6 +38,36 @@ class IDCIndexDataManager:
         output_basename = Path(file_path).name.split(".")[0]
         logger.debug("Executed SQL query from file: %s", file_path)
         return index_df, output_basename
+
+    def save_schema_to_json(self, df: pd.DataFrame, output_basename: str) -> None:
+        """
+        Saves the schema of a DataFrame to a JSON file.
+
+        Args:
+            df: The DataFrame to extract schema from
+            output_basename: The base name for the output file
+        """
+        # Convert DataFrame to PyArrow table to get schema
+        table = pa.Table.from_pandas(df)
+        schema = table.schema
+
+        # Convert schema to JSON-serializable format
+        schema_dict = {
+            "fields": [
+                {
+                    "name": field.name,
+                    "type": str(field.type),
+                    "nullable": field.nullable,
+                }
+                for field in schema
+            ]
+        }
+
+        # Save to JSON file
+        json_file_name = f"{output_basename}.json"
+        with Path(json_file_name).open("w") as f:
+            json.dump(schema_dict, f, indent=2)
+        logger.debug("Created schema JSON file: %s", json_file_name)
 
     def generate_index_data_files(
         self, generate_compressed_csv: bool = True, generate_parquet: bool = False
@@ -70,6 +102,9 @@ class IDCIndexDataManager:
                 parquet_file_name = f"{output_basename}.parquet"
                 index_df.to_parquet(parquet_file_name, compression="zstd")
                 logger.debug("Created Parquet file: %s", parquet_file_name)
+
+                # Save schema to JSON file
+                self.save_schema_to_json(index_df, output_basename)
 
     def retrieve_latest_idc_release_version(self) -> int:
         """
