@@ -33,9 +33,9 @@ class IDCIndexDataManager:
         """
         with Path(file_path).open("r") as file:
             sql_query = file.read()
-        query_job = self.client.query(sql_query)
-        schema = query_job.schema  # Get schema from BigQuery QueryJob
-        index_df = query_job.to_dataframe()
+        query_job_result = self.client.query(sql_query).result()
+        schema = query_job_result.schema  # Get schema from BigQuery QueryJob
+        index_df = query_job_result.to_dataframe()
         if "StudyDate" in index_df.columns:
             index_df["StudyDate"] = index_df["StudyDate"].astype(str)
         output_basename = Path(file_path).name.split(".")[0]
