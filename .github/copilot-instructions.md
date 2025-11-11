@@ -3,15 +3,15 @@
 ## Project Overview
 
 `idc-index-data` is a Python package that bundles the index data for the NCI
-Imaging Data Commons (IDC). The package provides CSV and Parquet files
-containing metadata about medical imaging data hosted by IDC, intended to be
-used by the `idc-index` Python package.
+Imaging Data Commons (IDC). The package provides Parquet files containing
+metadata about imaging data hosted by IDC, intended to be used by the
+`idc-index` Python package.
 
 ## Technology Stack
 
 - **Build System**: scikit-build-core with CMake
 - **Package Manager**: pip
-- **Python Versions**: 3.8, 3.9, 3.10, 3.11, 3.12
+- **Python Versions**: 3.10, 3.11, 3.12
 - **Testing**: pytest with pytest-cov
 - **Task Runner**: nox
 - **Linting**: ruff, pylint, mypy, pre-commit hooks
