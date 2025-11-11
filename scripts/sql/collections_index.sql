@@ -3,7 +3,7 @@ SELECT
   # name of the collection
   collection_name,
   # description:
-  # unique identifier of the collection 
+  # unique identifier of the collection
   collection_id,
   # description:
   # types of cancer represented in the collection
