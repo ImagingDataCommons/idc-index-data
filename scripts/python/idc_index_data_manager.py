@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 from pathlib import Path
@@ -20,22 +21,54 @@ class IDCIndexDataManager:
         self.client = bigquery.Client(project=project_id)
         logger.debug("IDCIndexDataManager initialized with project ID: %s", project_id)
 
-    def execute_sql_query(self, file_path: str) -> tuple[pd.DataFrame, str]:
+    def execute_sql_query(
+        self, file_path: str
+    ) -> tuple[pd.DataFrame, str, list[bigquery.SchemaField]]:
         """
         Executes the SQL query in the specified file.
 
         Returns:
-            Tuple[pd.DataFrame, str]: A tuple containing the DataFrame with query results,
-            the output basename.
+            Tuple[pd.DataFrame, str, List[bigquery.SchemaField]]: A tuple containing
+            the DataFrame with query results, the output basename, and the BigQuery schema.
         """
         with Path(file_path).open("r") as file:
             sql_query = file.read()
-        index_df = self.client.query(sql_query).to_dataframe()
+        query_job_result = self.client.query(sql_query).result()
+        schema = query_job_result.schema  # Get schema from BigQuery QueryJob
+        index_df = query_job_result.to_dataframe()
         if "StudyDate" in index_df.columns:
             index_df["StudyDate"] = index_df["StudyDate"].astype(str)
         output_basename = Path(file_path).name.split(".")[0]
         logger.debug("Executed SQL query from file: %s", file_path)
-        return index_df, output_basename
+        return index_df, output_basename, schema
+
+    def save_schema_to_json(
+        self, schema: list[bigquery.SchemaField], output_basename: str
+    ) -> None:
+        """
+        Saves the BigQuery schema to a JSON file.
+
+        Args:
+            schema: List of BigQuery SchemaField objects from the query result
+            output_basename: The base name for the output file
+        """
+        # Convert BigQuery schema to JSON-serializable format
+        schema_dict = {
+            "fields": [
+                {
+                    "name": field.name,
+                    "type": field.field_type,
+                    "mode": field.mode,
+                }
+                for field in schema
+            ]
+        }
+
+        # Save to JSON file
+        json_file_name = f"{output_basename}.json"
+        with Path(json_file_name).open("w") as f:
+            json.dump(schema_dict, f, indent=2)
+        logger.debug("Created schema JSON file: %s", json_file_name)
 
     def generate_index_data_files(
         self, generate_compressed_csv: bool = True, generate_parquet: bool = False
@@ -55,21 +88,24 @@ class IDCIndexDataManager:
         for file_name in Path.iterdir(sql_dir):
             if str(file_name).endswith(".sql"):
                 file_path = Path(sql_dir) / file_name
-                index_df, output_basename = self.execute_sql_query(file_path)
+                index_df, output_basename, schema = self.execute_sql_query(file_path)
                 logger.debug(
                     "Executed and processed SQL queries from file: %s", file_path
                 )
-            if generate_compressed_csv:
-                csv_file_name = f"{output_basename}.csv.zip"
-                index_df.to_csv(
-                    csv_file_name, compression={"method": "zip"}, escapechar="\\"
-                )
-                logger.debug("Created CSV zip file: %s", csv_file_name)
+                if generate_compressed_csv:
+                    csv_file_name = f"{output_basename}.csv.zip"
+                    index_df.to_csv(
+                        csv_file_name, compression={"method": "zip"}, escapechar="\\"
+                    )
+                    logger.debug("Created CSV zip file: %s", csv_file_name)
 
-            if generate_parquet:
-                parquet_file_name = f"{output_basename}.parquet"
-                index_df.to_parquet(parquet_file_name, compression="zstd")
-                logger.debug("Created Parquet file: %s", parquet_file_name)
+                if generate_parquet:
+                    parquet_file_name = f"{output_basename}.parquet"
+                    index_df.to_parquet(parquet_file_name, compression="zstd")
+                    logger.debug("Created Parquet file: %s", parquet_file_name)
+
+                    # Save schema to JSON file
+                    self.save_schema_to_json(schema, output_basename)
 
     def retrieve_latest_idc_release_version(self) -> int:
         """
