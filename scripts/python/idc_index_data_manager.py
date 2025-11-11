@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 
 import pandas as pd
-import pyarrow as pa
 from google.cloud import bigquery
 
 logging.basicConfig(level=logging.DEBUG)
@@ -22,42 +21,44 @@ class IDCIndexDataManager:
         self.client = bigquery.Client(project=project_id)
         logger.debug("IDCIndexDataManager initialized with project ID: %s", project_id)
 
-    def execute_sql_query(self, file_path: str) -> tuple[pd.DataFrame, str]:
+    def execute_sql_query(
+        self, file_path: str
+    ) -> tuple[pd.DataFrame, str, list[bigquery.SchemaField]]:
         """
         Executes the SQL query in the specified file.
 
         Returns:
-            Tuple[pd.DataFrame, str]: A tuple containing the DataFrame with query results,
-            the output basename.
+            Tuple[pd.DataFrame, str, List[bigquery.SchemaField]]: A tuple containing
+            the DataFrame with query results, the output basename, and the BigQuery schema.
         """
         with Path(file_path).open("r") as file:
             sql_query = file.read()
-        index_df = self.client.query(sql_query).to_dataframe()
+        query_job = self.client.query(sql_query)
+        schema = query_job.schema  # Get schema from BigQuery QueryJob
+        index_df = query_job.to_dataframe()
         if "StudyDate" in index_df.columns:
             index_df["StudyDate"] = index_df["StudyDate"].astype(str)
         output_basename = Path(file_path).name.split(".")[0]
         logger.debug("Executed SQL query from file: %s", file_path)
-        return index_df, output_basename
+        return index_df, output_basename, schema
 
-    def save_schema_to_json(self, df: pd.DataFrame, output_basename: str) -> None:
+    def save_schema_to_json(
+        self, schema: list[bigquery.SchemaField], output_basename: str
+    ) -> None:
         """
-        Saves the schema of a DataFrame to a JSON file.
+        Saves the BigQuery schema to a JSON file.
 
         Args:
-            df: The DataFrame to extract schema from
+            schema: List of BigQuery SchemaField objects from the query result
             output_basename: The base name for the output file
         """
-        # Convert DataFrame to PyArrow table to get schema
-        table = pa.Table.from_pandas(df)
-        schema = table.schema
-
-        # Convert schema to JSON-serializable format
+        # Convert BigQuery schema to JSON-serializable format
         schema_dict = {
             "fields": [
                 {
                     "name": field.name,
-                    "type": str(field.type),
-                    "nullable": field.nullable,
+                    "type": field.field_type,
+                    "mode": field.mode,
                 }
                 for field in schema
             ]
@@ -87,7 +88,7 @@ class IDCIndexDataManager:
         for file_name in Path.iterdir(sql_dir):
             if str(file_name).endswith(".sql"):
                 file_path = Path(sql_dir) / file_name
-                index_df, output_basename = self.execute_sql_query(file_path)
+                index_df, output_basename, schema = self.execute_sql_query(file_path)
                 logger.debug(
                     "Executed and processed SQL queries from file: %s", file_path
                 )
@@ -104,7 +105,7 @@ class IDCIndexDataManager:
                 logger.debug("Created Parquet file: %s", parquet_file_name)
 
                 # Save schema to JSON file
-                self.save_schema_to_json(index_df, output_basename)
+                self.save_schema_to_json(schema, output_basename)
 
     def retrieve_latest_idc_release_version(self) -> int:
         """

@@ -19,9 +19,9 @@ def main():
 
     for file_name in sql_files:
         file_path = assets_dir / file_name
-        index_df, output_basename = manager.execute_sql_query(file_path)
+        index_df, output_basename, schema = manager.execute_sql_query(file_path)
         index_df.to_parquet(f"{output_basename}.parquet")
-        manager.save_schema_to_json(index_df, output_basename)
+        manager.save_schema_to_json(schema, output_basename)
 
     core_indices_dir = scripts_dir.parent / "scripts" / "sql"
 
@@ -29,9 +29,9 @@ def main():
 
     for file_name in sql_files:
         file_path = core_indices_dir / file_name
-        index_df, output_basename = manager.execute_sql_query(file_path)
+        index_df, output_basename, schema = manager.execute_sql_query(file_path)
         index_df.to_parquet(f"{output_basename}.parquet")
-        manager.save_schema_to_json(index_df, output_basename)
+        manager.save_schema_to_json(schema, output_basename)
 
 
 if __name__ == "__main__":
