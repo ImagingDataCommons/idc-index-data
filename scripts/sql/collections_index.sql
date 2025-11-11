@@ -1,15 +1,39 @@
 SELECT
+  # description:
+  # name of the collection
   collection_name,
+  # description:
+  # unique identifier of the collection 
   collection_id,
+  # description:
+  # types of cancer represented in the collection
   CancerTypes,
+  # description:
+  # locations of tumors represented in the collection
   TumorLocations,
+  # description:
+  # number of subjects in the collection
   Subjects,
+  # description:
+  # species represented in the collection
   Species,
+  # description:
+  # sources of data for the collection
   Sources,
+  # description:
+  # additional data supporting the collection available in IDC
   SupportingData,
+  # description:
+  # broader initiative/category under which this collection is being shared
   Program,
+  # description:
+  # status of the collection (Completed or Ongoing)
   Status,
+  # description:
+  # timestamp of the last update to the collection
   Updated,
+  # description:
+  # detailed information about the collection
   Description
 FROM
   `bigquery-public-data.idc_v22.original_collections_metadata`

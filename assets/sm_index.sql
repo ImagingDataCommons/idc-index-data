@@ -82,10 +82,14 @@ SpecimenPreparationSequence_unnested AS (
 SELECT
   temp_table.SeriesInstanceUID,
   -- Embedding Medium
+  # description:
+  # embedding medium used for the slide preparation
   ARRAY(
     SELECT IF(code IS NULL, NULL, SPLIT(code, ':')[SAFE_OFFSET(0)])
     FROM UNNEST(embeddingMedium_code_str) AS code
   ) AS embeddingMedium_CodeMeaning,
+  # description:
+  # embedding medium code tuple
   ARRAY(
     SELECT IF(code IS NULL, NULL,
               IF(STRPOS(code, ':') = 0, NULL,
@@ -93,10 +97,14 @@ SELECT
     FROM UNNEST(embeddingMedium_code_str) AS code
   ) AS embeddingMedium_code_designator_value_str,
   -- Tissue Fixative
+  # description:
+  # tissue fixative used for the slide preparation
   ARRAY(
     SELECT IF(code IS NULL, NULL, SPLIT(code, ':')[SAFE_OFFSET(0)])
     FROM UNNEST(tissueFixative_code_str) AS code
   ) AS tissueFixative_CodeMeaning,
+  # description:
+  # tissue fixative code tuple
   ARRAY(
     SELECT IF(code IS NULL, NULL,
               IF(STRPOS(code, ':') = 0, NULL,
@@ -104,31 +112,56 @@ SELECT
     FROM UNNEST(tissueFixative_code_str) AS code
   ) AS tissueFixative_code_designator_value_str,
   -- Staining using substance
+  # description:
+  # staining substances used for the slide preparation
   ARRAY(
     SELECT IF(code IS NULL, NULL, SPLIT(code, ':')[SAFE_OFFSET(0)])
     FROM UNNEST(staining_usingSubstance_code_str) AS code
   ) AS staining_usingSubstance_CodeMeaning,
+  # description:
+  # staining using substance code tuple
   ARRAY(
     SELECT IF(code IS NULL, NULL,
               IF(STRPOS(code, ':') = 0, NULL,
                  SUBSTR(code, STRPOS(code, ':') + 1)))
     FROM UNNEST(staining_usingSubstance_code_str) AS code
   ) AS staining_usingSubstance_code_designator_value_str,
-
+  # description:
+  # pixel spacing in mm at the maximum resolution layer, rounded to 2 significant figures
   if(COALESCE(min_spacing_0, fg_min_spacing_0) = 0, 0,
     round(COALESCE(min_spacing_0, fg_min_spacing_0) ,CAST(2 -1-floor(log10(abs(COALESCE(min_spacing_0, fg_min_spacing_0) ))) AS INT64))) AS min_PixelSpacing_2sf,
+  # description:
+  # width of the image at the maximum resolution
   COALESCE(max_TotalPixelMatrixColumns, max_Columns) AS max_TotalPixelMatrixColumns,
+  # description:
+  # height of the image at the maximum resolution
   COALESCE(max_TotalPixelMatrixRows, max_Rows) AS max_TotalPixelMatrixRows,
+  # description:
+  # power of the objective lens of the equipment used to digitize the slide
   SAFE_CAST(ObjectiveLensPower as INT) as ObjectiveLensPower,
+  # description:
+  # anatomic location from where the imaged specimen was collected 
   CONCAT(SPLIT(primaryAnatomicStructure_code_str,":")[SAFE_OFFSET(0)],":",SPLIT(primaryAnatomicStructure_code_str,":")[SAFE_OFFSET(1)]) as primaryAnatomicStructure_code_designator_value_str,
+  # description:
+  # code tuple for the anatomic location from where the imaged specimen was collected
   SPLIT(primaryAnatomicStructure_code_str,":")[SAFE_OFFSET(2)] as primaryAnatomicStructure_CodeMeaning,
+  # description:
+  # additional characteristics of the specimen, such as whether it is a tumor or normal tissue (when available)
   CONCAT(SPLIT(primaryAnatomicStructureModifier_code_str,":")[SAFE_OFFSET(0)],":",SPLIT(primaryAnatomicStructureModifier_code_str,":")[SAFE_OFFSET(1)]) as primaryAnatomicStructureModifier_code_designator_value_str,
+  # description:
+  # code tuple for additional characteristics of the specimen, such as whether it is a tumor or normal tissue (when available)
   SPLIT(primaryAnatomicStructureModifier_code_str,":")[SAFE_OFFSET(2)] as primaryAnatomicStructureModifier_CodeMeaning,
-
+  # description:
+  # illumination type used during slide digitization
   CONCAT(SPLIT(illuminationType_code_str,":")[SAFE_OFFSET(0)],":",SPLIT(illuminationType_code_str,":")[SAFE_OFFSET(1)]) as illuminationType_code_designator_value_str,
+  # description:
+  # code tuple for the illumination type used during slide digitization
   SPLIT(illuminationType_code_str,":")[SAFE_OFFSET(2)] as illuminationType_CodeMeaning,
-
+  # description:
+  # admitting diagnosis associated with the specimen imaged on the slide (when available)
   CONCAT(SPLIT(admittingDiagnosis_code_str,":")[SAFE_OFFSET(0)],":",SPLIT(admittingDiagnosis_code_str,":")[SAFE_OFFSET(1)]) as admittingDiagnosis_code_designator_value_str,
+  # description:
+  # code tuple for the admitting diagnosis associated with the specimen imaged on the slide (when available)
   SPLIT(admittingDiagnosis_code_str,":")[SAFE_OFFSET(2)] as admittingDiagnosis_CodeMeaning,
 FROM
   temp_table
