@@ -48,15 +48,23 @@ WITH
   GROUP BY
     SOPInstanceUID )
 SELECT
+  # description:
+  # unique identifier of the instance
   dicom_all.SOPInstanceUID,
+  # description:
+  # unique identifier of the series
   dicom_all.SeriesInstanceUID,
   -- Embedding Medium
+  # description:
+  # embedding medium used for the slide preparation
   ARRAY(
   SELECT
   IF
     (code IS NULL, NULL, SPLIT(code, ':')[SAFE_OFFSET(0)])
   FROM
     UNNEST(embeddingMedium_code_str) AS code ) AS embeddingMedium_CodeMeaning,
+  # description:
+  # embedding medium code tuple
   ARRAY(
   SELECT
   IF
@@ -66,12 +74,16 @@ SELECT
   FROM
     UNNEST(embeddingMedium_code_str) AS code ) AS embeddingMedium_code_designator_value_str,
   -- Tissue Fixative
+  # description:
+  # tissue fixative used for the slide preparation
   ARRAY(
   SELECT
   IF
     (code IS NULL, NULL, SPLIT(code, ':')[SAFE_OFFSET(0)])
   FROM
     UNNEST(tissueFixative_code_str) AS code ) AS tissueFixative_CodeMeaning,
+  # description:
+  # tissue fixative code tuple
   ARRAY(
   SELECT
   IF
@@ -81,12 +93,16 @@ SELECT
   FROM
     UNNEST(tissueFixative_code_str) AS code ) AS tissueFixative_code_designator_value_str,
   -- Staining using substance
+  # description:
+  # staining substances used for the slide preparation
   ARRAY(
   SELECT
   IF
     (code IS NULL, NULL, SPLIT(code, ':')[SAFE_OFFSET(0)])
   FROM
     UNNEST(staining_usingSubstance_code_str) AS code ) AS staining_usingSubstance_CodeMeaning,
+  # description:
+  # staining using substance code tuple
   ARRAY(
   SELECT
   IF
@@ -98,13 +114,27 @@ SELECT
   -- instance-specific image attributes
   -- NB: there is a caveat that I think in general, we expect square pixels, but in htan_wustl and cptac_luad this assumption does not hold,
   -- and in htan_wustl, the difference is rather large (x2) - waiting to hear from David Clunie about this...
+  # description:
+  # pixel spacing in mm, rounded to 2 significant figures
   SAFE_CAST(SharedFunctionalGroupsSequence[SAFE_OFFSET(0)].PixelMeasuresSequence[SAFE_OFFSET(0)]. PixelSpacing[SAFE_OFFSET(0)] AS FLOAT64) AS PixelSpacing_0,
+  # description:
+  # DICOM ImageType attribute
   dicom_all.ImageType,
+  # description:
+  # DICOM TransferSyntaxUID attribute
   dicom_all.TransferSyntaxUID,
+  # description:
+  # size of the instance file in bytes
   dicom_all.instance_size,
+  # description:
+  # number of columns in the image
   dicom_all.TotalPixelMatrixColumns,
+  # description:
+  # number of rows in the image
   dicom_all.TotalPixelMatrixRows,
   -- attributes needed to retrieve the selected instances/files
+  # description:
+  # unique identifier of the instance within the IDC
   dicom_all.crdc_instance_uuid
 FROM
   `bigquery-public-data.idc_v22.dicom_all` AS dicom_all
