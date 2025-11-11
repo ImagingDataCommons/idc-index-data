@@ -159,3 +159,6 @@ Thumbs.db
 
 # gcp service account keys
 gha-creds-**.json
+
+# Release artifacts directory
+release_artifacts/
