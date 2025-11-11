@@ -92,20 +92,20 @@ class IDCIndexDataManager:
                 logger.debug(
                     "Executed and processed SQL queries from file: %s", file_path
                 )
-            if generate_compressed_csv:
-                csv_file_name = f"{output_basename}.csv.zip"
-                index_df.to_csv(
-                    csv_file_name, compression={"method": "zip"}, escapechar="\\"
-                )
-                logger.debug("Created CSV zip file: %s", csv_file_name)
+                if generate_compressed_csv:
+                    csv_file_name = f"{output_basename}.csv.zip"
+                    index_df.to_csv(
+                        csv_file_name, compression={"method": "zip"}, escapechar="\\"
+                    )
+                    logger.debug("Created CSV zip file: %s", csv_file_name)
 
-            if generate_parquet:
-                parquet_file_name = f"{output_basename}.parquet"
-                index_df.to_parquet(parquet_file_name, compression="zstd")
-                logger.debug("Created Parquet file: %s", parquet_file_name)
+                if generate_parquet:
+                    parquet_file_name = f"{output_basename}.parquet"
+                    index_df.to_parquet(parquet_file_name, compression="zstd")
+                    logger.debug("Created Parquet file: %s", parquet_file_name)
 
-                # Save schema to JSON file
-                self.save_schema_to_json(schema, output_basename)
+                    # Save schema to JSON file
+                    self.save_schema_to_json(schema, output_basename)
 
     def retrieve_latest_idc_release_version(self) -> int:
         """
