@@ -55,6 +55,6 @@ jobs:
         if: github.event_name == 'release' && github.event.action == 'published'
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "release_artifacts/*.parquet,release_artifacts/*.json"
+          artifacts: "release_artifacts/*.parquet,release_artifacts/*.json,release_artifacts/*.sql"
           allowUpdates: true
           omitBodyDuringUpdate: true
