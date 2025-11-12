@@ -37,10 +37,13 @@ def main():
 
     for file_name in sql_files:
         file_path = core_indices_dir / file_name
-        index_df, output_basename, schema = manager.execute_sql_query(file_path)
+        index_df, output_basename, schema, sql_query = manager.execute_sql_query(
+            file_path
+        )
         parquet_file_path = output_dir / f"{output_basename}.parquet"
         index_df.to_parquet(parquet_file_path)
         manager.save_schema_to_json(schema, output_basename, output_dir)
+        manager.save_sql_query(sql_query, output_basename, output_dir)
 
 
 if __name__ == "__main__":

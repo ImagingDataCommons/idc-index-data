@@ -133,7 +133,9 @@ class IDCIndexDataManager:
         for file_name in Path.iterdir(sql_dir):
             if str(file_name).endswith(".sql"):
                 file_path = Path(sql_dir) / file_name
-                index_df, output_basename, schema = self.execute_sql_query(file_path)
+                index_df, output_basename, schema, sql_query = self.execute_sql_query(
+                    file_path
+                )
                 logger.debug(
                     "Executed and processed SQL queries from file: %s", file_path
                 )
@@ -157,8 +159,10 @@ class IDCIndexDataManager:
                     index_df.to_parquet(parquet_file_path, compression="zstd")
                     logger.debug("Created Parquet file: %s", parquet_file_path)
 
-                    # Save schema to JSON file
-                    self.save_schema_to_json(schema, output_basename, output_dir)
+                # Save schema to JSON file
+                self.save_schema_to_json(schema, output_basename, output_dir)
+                # Save SQL query to file
+                self.save_sql_query(sql_query, output_basename, output_dir)
 
     def retrieve_latest_idc_release_version(self) -> int:
         """
