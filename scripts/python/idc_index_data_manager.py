@@ -40,7 +40,7 @@ class IDCIndexDataManager:
             index_df["StudyDate"] = index_df["StudyDate"].astype(str)
         output_basename = Path(file_path).name.split(".")[0]
         logger.debug("Executed SQL query from file: %s", file_path)
-        return index_df, output_basename, schema
+        return index_df, output_basename, schema, sql_query
 
     def save_schema_to_json(
         self,
@@ -78,6 +78,31 @@ class IDCIndexDataManager:
         with json_file_path.open("w") as f:
             json.dump(schema_dict, f, indent=2)
         logger.debug("Created schema JSON file: %s", json_file_path)
+
+    def save_sql_query(
+        self,
+        sql_query: str,
+        output_basename: str,
+        output_dir: Path | None = None,
+    ) -> None:
+        """
+        Saves the SQL query to a file.
+
+        Args:
+            sql_query: The SQL query string
+            output_basename: The base name for the output file
+            output_dir: Optional directory path for the output file
+        """
+
+        if output_dir:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            query_file_path = output_dir / f"{output_basename}.sql"
+        else:
+            query_file_path = Path(f"{output_basename}.sql")
+
+        with query_file_path.open("w") as f:
+            f.write(sql_query)
+        logger.debug("Created SQL query file: %s", query_file_path)
 
     def generate_index_data_files(
         self,
