@@ -133,7 +133,9 @@ class IDCIndexDataManager:
         for file_name in Path.iterdir(sql_dir):
             if str(file_name).endswith(".sql"):
                 file_path = Path(sql_dir) / file_name
-                index_df, output_basename, schema = self.execute_sql_query(file_path)
+                index_df, output_basename, schema, sql_query = self.execute_sql_query(
+                    file_path
+                )
                 logger.debug(
                     "Executed and processed SQL queries from file: %s", file_path
                 )
@@ -157,8 +159,10 @@ class IDCIndexDataManager:
                     index_df.to_parquet(parquet_file_path, compression="zstd")
                     logger.debug("Created Parquet file: %s", parquet_file_path)
 
-                    # Save schema to JSON file
-                    self.save_schema_to_json(schema, output_basename, output_dir)
+                # Save schema to JSON file
+                self.save_schema_to_json(schema, output_basename, output_dir)
+                # Save SQL query to file
+                self.save_sql_query(sql_query, output_basename, output_dir)
 
     def retrieve_latest_idc_release_version(self) -> int:
         """
@@ -192,16 +196,23 @@ if __name__ == "__main__":
         "--generate-csv-archive",
         action="store_true",
         help="Generate idc_index.csv.zip file",
+        default=False,
     )
     parser.add_argument(
         "--generate-parquet",
         action="store_true",
         help="Generate idc_index.parquet file",
+        default=True,
     )
     parser.add_argument(
         "--retrieve-latest-idc-release-version",
         action="store_true",
         help="Retrieve and display the latest IDC release version",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default="release_artifacts",
+        help="Directory to save generated files (default: release_artifacts)",
     )
 
     args = parser.parse_args()
@@ -215,6 +226,7 @@ if __name__ == "__main__":
         IDCIndexDataManager(args.project).generate_index_data_files(
             generate_compressed_csv=args.generate_csv_archive,
             generate_parquet=args.generate_parquet,
+            output_dir=Path(args.output_dir),
         )
     elif args.retrieve_latest_idc_release_version:
         logging.basicConfig(level=logging.ERROR, force=True)
