@@ -179,3 +179,40 @@ FROM table
         assert (
             descriptions["collection_name"] == "name of the collection additional info"
         )
+
+    def test_nested_array_select_with_if(self):
+        """Test parsing complex nested ARRAY/SELECT/IF statements."""
+        sql_query = """
+SELECT
+  # description:
+  # embedding medium used for the slide preparation
+  ARRAY(
+  SELECT
+  IF
+    (code IS NULL, NULL, SPLIT(code, ':')[SAFE_OFFSET(0)])
+  FROM
+    UNNEST(embeddingMedium_code_str) AS code ) AS embeddingMedium_CodeMeaning,
+  # description:
+  # embedding medium code tuple
+  ARRAY(
+  SELECT
+  IF
+    (code IS NULL, NULL,
+    IF
+      (STRPOS(code, ':') = 0, NULL, SUBSTR(code, STRPOS(code, ':') + 1)))
+  FROM
+    UNNEST(embeddingMedium_code_str) AS code ) AS embeddingMedium_code_designator_value_str,
+FROM table
+"""
+        descriptions = IDCIndexDataManager.parse_column_descriptions(sql_query)
+        assert len(descriptions) == 2
+        assert "embeddingMedium_CodeMeaning" in descriptions
+        assert (
+            descriptions["embeddingMedium_CodeMeaning"]
+            == "embedding medium used for the slide preparation"
+        )
+        assert "embeddingMedium_code_designator_value_str" in descriptions
+        assert (
+            descriptions["embeddingMedium_code_designator_value_str"]
+            == "embedding medium code tuple"
+        )

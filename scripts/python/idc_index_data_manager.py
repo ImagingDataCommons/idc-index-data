@@ -77,15 +77,21 @@ class IDCIndexDataManager:
                     description = " ".join(description_lines)
 
                     # Find the column name by parsing the SELECT clause
-                    # We need to handle multi-line column definitions
+                    # We need to handle multi-line column definitions with nested structures
                     column_def = ""
+                    paren_depth = (
+                        0  # Track parentheses depth to handle nested SELECT/FROM
+                    )
+
                     while i < len(lines):
                         current_line = lines[i]
                         current_stripped = current_line.strip()
 
-                        # Check if this line contains a SQL keyword (end of SELECT clause)
-                        # These keywords indicate we've gone past the column definition
-                        if any(
+                        # Count parentheses to track nesting depth
+                        paren_depth += current_line.count("(") - current_line.count(")")
+
+                        # Only check for top-level SQL keywords when not inside nested structures
+                        if paren_depth == 0 and any(
                             current_stripped.upper().startswith(keyword)
                             for keyword in [
                                 "FROM",
@@ -106,29 +112,14 @@ class IDCIndexDataManager:
                         column_def += " " + current_stripped
                         i += 1
 
-                        # Check if we've found a complete column definition (has a comma)
-                        if "," in current_line:
+                        # Check if we've found a complete column definition
+                        # (has a comma at depth 0)
+                        if paren_depth == 0 and "," in current_line:
                             break
 
-                        # If we've accumulated content and the next line starts with a keyword,
-                        # we should stop
-                        if i < len(lines):
-                            next_stripped = lines[i].strip()
-                            if any(
-                                next_stripped.upper().startswith(keyword)
-                                for keyword in [
-                                    "FROM",
-                                    "WHERE",
-                                    "GROUP BY",
-                                    "ORDER BY",
-                                    "JOIN",
-                                    "LEFT",
-                                    "RIGHT",
-                                    "INNER",
-                                    "OUTER",
-                                ]
-                            ):
-                                break
+                        # Safety check: if we've gone too deep, break
+                        if paren_depth < 0:
+                            break
 
                     # Extract column name from the definition
                     column_name = IDCIndexDataManager._extract_column_name(column_def)
@@ -339,7 +330,14 @@ class IDCIndexDataManager:
                     logger.debug("Created Parquet file: %s", parquet_file_path)
 
                 # Save schema to JSON file
-                self.save_schema_to_json(schema, output_basename, sql_query, output_dir)
+                # Skip parsing descriptions for prior_versions_index as it has dynamic SQL
+                if output_basename != "prior_versions_index":
+                    self.save_schema_to_json(
+                        schema, output_basename, sql_query, output_dir
+                    )
+                else:
+                    # For prior_versions_index, save schema without descriptions
+                    self.save_schema_to_json(schema, output_basename, "", output_dir)
                 # Save SQL query to file
                 self.save_sql_query(sql_query, output_basename, output_dir)
 
