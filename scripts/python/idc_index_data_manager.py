@@ -207,7 +207,7 @@ class IDCIndexDataManager:
         self,
         schema: list[bigquery.SchemaField],
         output_basename: str,
-        sql_query: str,
+        sql_query: str | None = None,
         output_dir: Path | None = None,
     ) -> None:
         """
@@ -223,20 +223,34 @@ class IDCIndexDataManager:
         # Parse column descriptions from SQL comments
         logger.debug("Parsing column descriptions from SQL query comments")
         logger.debug(sql_query)
-        descriptions = self.parse_column_descriptions(sql_query)
+        if sql_query is not None:
+            descriptions = self.parse_column_descriptions(sql_query)
 
-        # Convert BigQuery schema to JSON-serializable format
-        schema_dict = {
-            "fields": [
-                {
-                    "name": field.name,
-                    "type": field.field_type,
-                    "mode": field.mode,
-                    "description": descriptions.get(field.name, ""),
-                }
-                for field in schema
-            ]
-        }
+            # Convert BigQuery schema to JSON-serializable format
+            schema_dict = {
+                "fields": [
+                    {
+                        "name": field.name,
+                        "type": field.field_type,
+                        "mode": field.mode,
+                        "description": descriptions.get(field.name, ""),
+                    }
+                    for field in schema
+                ]
+            }
+        else:
+            # If no SQL query provided, save schema without descriptions
+            schema_dict = {
+                "fields": [
+                    {
+                        "name": field.name,
+                        "type": field.field_type,
+                        "mode": field.mode,
+                        "description": "",
+                    }
+                    for field in schema
+                ]
+            }
 
         # Save to JSON file
         if output_dir:
@@ -337,7 +351,7 @@ class IDCIndexDataManager:
                     )
                 else:
                     # For prior_versions_index, save schema without descriptions
-                    self.save_schema_to_json(schema, output_basename, "", output_dir)
+                    self.save_schema_to_json(schema, output_basename, None, output_dir)
                 # Save SQL query to file
                 self.save_sql_query(sql_query, output_basename, output_dir)
 
