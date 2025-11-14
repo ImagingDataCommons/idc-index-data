@@ -7,7 +7,7 @@ from scripts.python.idc_index_data_manager import IDCIndexDataManager
 """Test script to verify column description parsing with real SQL files."""
 
 
-def test_real_sql_files():
+def test_real_sql_files() -> None:
     """Test parsing descriptions from actual SQL files in the repository."""
     scripts_dir = Path(__file__).parent.parent / "scripts"
     sql_dir = scripts_dir / "sql"
@@ -40,7 +40,9 @@ def test_real_sql_files():
             "Description",
         ]
         for col in expected_columns:
-            assert col in descriptions, f"Expected column '{col}' not found in descriptions"
+            assert col in descriptions, (
+                f"Expected column '{col}' not found in descriptions"
+            )
         print("✓ All expected columns found")
 
     # Test idc_index.sql
@@ -52,14 +54,14 @@ def test_real_sql_files():
         descriptions = IDCIndexDataManager.parse_column_descriptions(sql_query)
         print("\n=== idc_index.sql ===")
         print(f"Found {len(descriptions)} column descriptions:")
-        
+
         # Show first 10 descriptions
         for i, (col_name, desc) in enumerate(descriptions.items()):
             if i < 10:
                 print(f"  {col_name}: {desc[:60]}...")
             else:
                 break
-        
+
         if len(descriptions) > 10:
             print(f"  ... and {len(descriptions) - 10} more")
 

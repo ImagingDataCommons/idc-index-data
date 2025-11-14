@@ -87,7 +87,17 @@ class IDCIndexDataManager:
                         # These keywords indicate we've gone past the column definition
                         if any(
                             current_stripped.upper().startswith(keyword)
-                            for keyword in ["FROM", "WHERE", "GROUP BY", "ORDER BY", "JOIN", "LEFT", "RIGHT", "INNER", "OUTER"]
+                            for keyword in [
+                                "FROM",
+                                "WHERE",
+                                "GROUP BY",
+                                "ORDER BY",
+                                "JOIN",
+                                "LEFT",
+                                "RIGHT",
+                                "INNER",
+                                "OUTER",
+                            ]
                         ):
                             # Don't include this line in column_def
                             # Don't increment i here - let outer loop handle it
@@ -106,7 +116,17 @@ class IDCIndexDataManager:
                             next_stripped = lines[i].strip()
                             if any(
                                 next_stripped.upper().startswith(keyword)
-                                for keyword in ["FROM", "WHERE", "GROUP BY", "ORDER BY", "JOIN", "LEFT", "RIGHT", "INNER", "OUTER"]
+                                for keyword in [
+                                    "FROM",
+                                    "WHERE",
+                                    "GROUP BY",
+                                    "ORDER BY",
+                                    "JOIN",
+                                    "LEFT",
+                                    "RIGHT",
+                                    "INNER",
+                                    "OUTER",
+                                ]
                             ):
                                 break
 
@@ -117,7 +137,9 @@ class IDCIndexDataManager:
                         logger.debug(
                             "Parsed description for column '%s': %s",
                             column_name,
-                            description[:50] + "..." if len(description) > 50 else description,
+                            description[:50] + "..."
+                            if len(description) > 50
+                            else description,
                         )
                 else:
                     i += 1
@@ -170,13 +192,14 @@ class IDCIndexDataManager:
 
     def execute_sql_query(
         self, file_path: str
-    ) -> tuple[pd.DataFrame, str, list[bigquery.SchemaField]]:
+    ) -> tuple[pd.DataFrame, str, list[bigquery.SchemaField], str]:
         """
         Executes the SQL query in the specified file.
 
         Returns:
-            Tuple[pd.DataFrame, str, List[bigquery.SchemaField]]: A tuple containing
-            the DataFrame with query results, the output basename, and the BigQuery schema.
+            Tuple[pd.DataFrame, str, List[bigquery.SchemaField], str]: A tuple containing
+            the DataFrame with query results, the output basename, the BigQuery schema, and
+            the SQL query string.
         """
         with Path(file_path).open("r") as file:
             sql_query = file.read()
@@ -288,7 +311,7 @@ class IDCIndexDataManager:
             if str(file_name).endswith(".sql"):
                 file_path = Path(sql_dir) / file_name
                 index_df, output_basename, schema, sql_query = self.execute_sql_query(
-                    file_path
+                    str(file_path)
                 )
                 logger.debug(
                     "Executed and processed SQL queries from file: %s", file_path
