@@ -122,9 +122,7 @@ FROM table
             )
             == "collection_id"
         )
-        assert (
-            IDCIndexDataManager._extract_column_name("column AS alias,") == "alias"
-        )
+        assert IDCIndexDataManager._extract_column_name("column AS alias,") == "alias"
 
     def test_extract_column_name_complex(self):
         """Test extracting column name from complex expressions."""
@@ -178,4 +176,6 @@ FROM table
         descriptions = IDCIndexDataManager.parse_column_descriptions(sql_query)
         assert "collection_name" in descriptions
         # Empty comment lines should be skipped
-        assert descriptions["collection_name"] == "name of the collection additional info"
+        assert (
+            descriptions["collection_name"] == "name of the collection additional info"
+        )
