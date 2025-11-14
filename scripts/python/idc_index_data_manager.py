@@ -230,6 +230,8 @@ class IDCIndexDataManager:
             output_dir: Optional directory path for the output file
         """
         # Parse column descriptions from SQL comments
+        logger.debug("Parsing column descriptions from SQL query comments")
+        logger.debug(sql_query)
         descriptions = self.parse_column_descriptions(sql_query)
 
         # Convert BigQuery schema to JSON-serializable format
