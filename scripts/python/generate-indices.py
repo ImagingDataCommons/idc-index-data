@@ -28,7 +28,7 @@ def main():
         )
         parquet_file_path = output_dir / f"{output_basename}.parquet"
         index_df.to_parquet(parquet_file_path)
-        manager.save_schema_to_json(schema, output_basename, sql_query, output_dir)
+        manager.save_schema_to_json(schema, output_basename, output_dir)
         manager.save_sql_query(sql_query, output_basename, output_dir)
 
     core_indices_dir = scripts_dir.parent / "scripts" / "sql"
@@ -42,7 +42,11 @@ def main():
         )
         parquet_file_path = output_dir / f"{output_basename}.parquet"
         index_df.to_parquet(parquet_file_path)
-        manager.save_schema_to_json(schema, output_basename, output_dir)
+        if output_basename == "prior_versions_index":
+            # For prior_versions_index, save schema without descriptions
+            manager.save_schema_to_json(schema, output_basename, None, output_dir)
+        else:
+            manager.save_schema_to_json(schema, output_basename, sql_query, output_dir)
         manager.save_sql_query(sql_query, output_basename, output_dir)
 
 
