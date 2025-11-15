@@ -40,6 +40,8 @@ class IDCIndexDataManager:
             Dictionary mapping column names to their descriptions
         """
         descriptions: dict[str, str] = {}
+        logger.debug("Parsing column descriptions from SQL query comments")
+        logger.debug(sql_query)
         lines = sql_query.split("\n")
 
         i = 0
