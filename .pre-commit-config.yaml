@@ -55,6 +55,7 @@ repos:
         additional_dependencies:
           - pytest
           - pandas-stubs
+          - google-cloud-bigquery
 
   - repo: https://github.com/codespell-project/codespell
     rev: "v2.4.1"

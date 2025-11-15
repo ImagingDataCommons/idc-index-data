@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -21,15 +22,177 @@ class IDCIndexDataManager:
         self.client = bigquery.Client(project=project_id)
         logger.debug("IDCIndexDataManager initialized with project ID: %s", project_id)
 
+    @staticmethod
+    def parse_column_descriptions(sql_query: str) -> dict[str, str]:
+        """
+        Parses column descriptions from SQL query comments.
+
+        The method looks for comments following the pattern:
+        # description:
+        # description text continues here
+        # and can span multiple lines
+        column_name or expression AS column_name,
+
+        Args:
+            sql_query: The SQL query string containing comments
+
+        Returns:
+            Dictionary mapping column names to their descriptions
+        """
+        descriptions: dict[str, str] = {}
+        logger.debug("Parsing column descriptions from SQL query comments")
+        logger.debug(sql_query)
+        lines = sql_query.split("\n")
+
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            stripped = line.strip()
+
+            # Check if this line starts a description comment
+            if stripped == "# description:":
+                # Collect description lines until we hit a non-comment line
+                description_lines = []
+                i += 1
+
+                while i < len(lines):
+                    next_line = lines[i]
+                    next_stripped = next_line.strip()
+
+                    # If it's a description comment line (starts with #)
+                    if next_stripped.startswith("#") and next_stripped != "#":
+                        # Remove the leading # and whitespace
+                        desc_text = next_stripped[1:].strip()
+                        if desc_text:
+                            description_lines.append(desc_text)
+                        i += 1
+                    elif next_stripped.startswith("#"):
+                        # Empty comment line, skip
+                        i += 1
+                    else:
+                        # Non-comment line - this should contain the column definition
+                        break
+
+                # Now parse the column definition
+                if i < len(lines) and description_lines:
+                    # Join the description lines
+                    description = " ".join(description_lines)
+
+                    # Find the column name by parsing the SELECT clause
+                    # We need to handle multi-line column definitions with nested structures
+                    column_def = ""
+                    paren_depth = (
+                        0  # Track parentheses depth to handle nested SELECT/FROM
+                    )
+
+                    while i < len(lines):
+                        current_line = lines[i]
+                        current_stripped = current_line.strip()
+
+                        # Count parentheses to track nesting depth
+                        paren_depth += current_line.count("(") - current_line.count(")")
+
+                        # Only check for top-level SQL keywords when not inside nested structures
+                        if paren_depth == 0 and any(
+                            current_stripped.upper().startswith(keyword)
+                            for keyword in [
+                                "FROM",
+                                "WHERE",
+                                "GROUP BY",
+                                "ORDER BY",
+                                "JOIN",
+                                "LEFT",
+                                "RIGHT",
+                                "INNER",
+                                "OUTER",
+                            ]
+                        ):
+                            # Don't include this line in column_def
+                            # Don't increment i here - let outer loop handle it
+                            break
+
+                        column_def += " " + current_stripped
+                        i += 1
+
+                        # Check if we've found a complete column definition
+                        # (has a comma at depth 0)
+                        if paren_depth == 0 and "," in current_line:
+                            break
+
+                        # Safety check: if we've gone too deep, break
+                        if paren_depth < 0:
+                            break
+
+                    # Extract column name from the definition
+                    column_name = IDCIndexDataManager._extract_column_name(column_def)
+                    if column_name:
+                        descriptions[column_name] = description
+                        logger.debug(
+                            "Parsed description for column '%s': %s",
+                            column_name,
+                            description[:50] + "..."
+                            if len(description) > 50
+                            else description,
+                        )
+                else:
+                    i += 1
+            else:
+                i += 1
+
+        return descriptions
+
+    @staticmethod
+    def _extract_column_name(column_def: str) -> str | None:
+        """
+        Extracts the column name from a column definition.
+
+        Handles various formats:
+        - column_name,
+        - expression AS column_name,
+        - ANY_VALUE(column) AS column_name,
+        - Complex expressions with nested parentheses
+
+        Args:
+            column_def: The column definition string
+
+        Returns:
+            The column name or None if not found
+        """
+        # Remove trailing comma and whitespace
+        column_def = column_def.strip().rstrip(",").strip()
+
+        # Look for the last AS clause (to handle nested AS in CAST expressions)
+        # Use a regex that finds the rightmost AS followed by a word
+        as_matches = list(re.finditer(r"\bAS\b\s+(\w+)", column_def, re.IGNORECASE))
+        if as_matches:
+            # Return the last match (rightmost AS clause)
+            return as_matches[-1].group(1)
+
+        # If no AS clause, try to get the column name
+        # Remove function calls and get the last word before comma
+        # Handle cases like: column_name, or just column_name
+        parts = column_def.split()
+        if parts:
+            # Get the last word that looks like an identifier
+            for original_part in reversed(parts):
+                # Remove trailing punctuation
+                part = original_part.rstrip(",").strip()
+                # Check if it's a valid identifier (word characters only)
+                if re.match(r"^\w+$", part):
+                    return part
+
+        return None
+
     def execute_sql_query(
         self, file_path: str
-    ) -> tuple[pd.DataFrame, str, list[bigquery.SchemaField]]:
+    ) -> tuple[pd.DataFrame, str, list[bigquery.SchemaField], str]:
         """
         Executes the SQL query in the specified file.
 
         Returns:
-            Tuple[pd.DataFrame, str, List[bigquery.SchemaField]]: A tuple containing
-            the DataFrame with query results, the output basename, and the BigQuery schema.
+            Tuple[pd.DataFrame, str, List[bigquery.SchemaField], str]: A tuple containing
+            the DataFrame with query results, the output basename, the BigQuery schema, and
+            the SQL query string.
         """
         with Path(file_path).open("r") as file:
             sql_query = file.read()
@@ -46,27 +209,50 @@ class IDCIndexDataManager:
         self,
         schema: list[bigquery.SchemaField],
         output_basename: str,
+        sql_query: str | None = None,
         output_dir: Path | None = None,
     ) -> None:
         """
-        Saves the BigQuery schema to a JSON file.
+        Saves the BigQuery schema to a JSON file, including column descriptions
+        parsed from SQL query comments.
 
         Args:
             schema: List of BigQuery SchemaField objects from the query result
             output_basename: The base name for the output file
+            sql_query: The SQL query string to parse for column descriptions
             output_dir: Optional directory path for the output file
         """
-        # Convert BigQuery schema to JSON-serializable format
-        schema_dict = {
-            "fields": [
-                {
-                    "name": field.name,
-                    "type": field.field_type,
-                    "mode": field.mode,
-                }
-                for field in schema
-            ]
-        }
+        # Parse column descriptions from SQL comments
+        logger.debug("Parsing column descriptions from SQL query comments")
+        logger.debug(sql_query)
+        if sql_query is not None:
+            descriptions = self.parse_column_descriptions(sql_query)
+
+            # Convert BigQuery schema to JSON-serializable format
+            schema_dict = {
+                "fields": [
+                    {
+                        "name": field.name,
+                        "type": field.field_type,
+                        "mode": field.mode,
+                        "description": descriptions.get(field.name, ""),
+                    }
+                    for field in schema
+                ]
+            }
+        else:
+            # If no SQL query provided, save schema without descriptions
+            schema_dict = {
+                "fields": [
+                    {
+                        "name": field.name,
+                        "type": field.field_type,
+                        "mode": field.mode,
+                        "description": "",
+                    }
+                    for field in schema
+                ]
+            }
 
         # Save to JSON file
         if output_dir:
@@ -134,7 +320,7 @@ class IDCIndexDataManager:
             if str(file_name).endswith(".sql"):
                 file_path = Path(sql_dir) / file_name
                 index_df, output_basename, schema, sql_query = self.execute_sql_query(
-                    file_path
+                    str(file_path)
                 )
                 logger.debug(
                     "Executed and processed SQL queries from file: %s", file_path
@@ -160,7 +346,14 @@ class IDCIndexDataManager:
                     logger.debug("Created Parquet file: %s", parquet_file_path)
 
                 # Save schema to JSON file
-                self.save_schema_to_json(schema, output_basename, output_dir)
+                # Skip parsing descriptions for prior_versions_index as it has dynamic SQL
+                if output_basename != "prior_versions_index":
+                    self.save_schema_to_json(
+                        schema, output_basename, sql_query, output_dir
+                    )
+                else:
+                    # For prior_versions_index, save schema without descriptions
+                    self.save_schema_to_json(schema, output_basename, None, output_dir)
                 # Save SQL query to file
                 self.save_sql_query(sql_query, output_basename, output_dir)
 
