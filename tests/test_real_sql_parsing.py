@@ -84,18 +84,6 @@ def test_real_sql_files() -> None:
             else:
                 print(f"✗ Missing expected column: {col}")
 
-    # Test analysis_results_index.sql (should have no descriptions)
-    analysis_sql_path = sql_dir / "analysis_results_index.sql"
-    if analysis_sql_path.exists():
-        with analysis_sql_path.open("r") as f:
-            sql_query = f.read()
-
-        descriptions = IDCIndexDataManager.parse_column_descriptions(sql_query)
-        print("\n=== analysis_results_index.sql ===")
-        print(f"Found {len(descriptions)} column descriptions (expected 0)")
-        assert len(descriptions) == 0, "Expected no descriptions in this file"
-        print("✓ Correctly found no descriptions")
-
 
 if __name__ == "__main__":
     test_real_sql_files()

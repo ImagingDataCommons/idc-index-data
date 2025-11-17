@@ -130,10 +130,16 @@ class IDCIndexDataManager:
                         logger.debug(
                             "Parsed description for column '%s': %s",
                             column_name,
-                            description[:50] + "..."
-                            if len(description) > 50
-                            else description,
+                            description,
                         )
+                        # throw exception if description is empty
+                        if not description:
+                            raise ValueError(
+                                "Description for column '"
+                                + column_name
+                                + "' is empty, and empty descriptions are not allowed."
+                            )
+
                 else:
                     i += 1
             else:
