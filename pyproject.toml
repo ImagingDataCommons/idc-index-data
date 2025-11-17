@@ -38,7 +38,9 @@ classifiers = [
   "Topic :: Scientific/Engineering",
   "Typing :: Typed",
 ]
-dependencies = []
+dependencies = [
+  "google-cloud-bigquery"
+]
 
 [project.optional-dependencies]
 test = [
