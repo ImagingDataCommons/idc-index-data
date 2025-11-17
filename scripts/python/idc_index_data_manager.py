@@ -23,6 +23,51 @@ class IDCIndexDataManager:
         logger.debug("IDCIndexDataManager initialized with project ID: %s", project_id)
 
     @staticmethod
+    def parse_table_description(sql_query: str) -> str:
+        """
+        Parses the table description from SQL query comments.
+
+        The method looks for comments following the pattern:
+        # table-description:
+        # description text continues here
+        # and can span multiple lines
+
+        Args:
+            sql_query: The SQL query string containing comments
+
+        Returns:
+            The table description as a string
+        """
+        description_lines = []
+        logger.debug("Parsing table description from SQL query comments")
+        logger.debug(sql_query)
+        lines = sql_query.split("\n")
+
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped == "# table-description:":
+                # Collect description lines until we hit a non-comment line
+                j = i + 1
+                while j < len(lines):
+                    next_line = lines[j]
+                    next_stripped = next_line.strip()
+                    if next_stripped.startswith("#") and next_stripped != "#":
+                        # Remove the leading # and whitespace
+                        desc_text = next_stripped[1:].strip()
+                        if desc_text:
+                            description_lines.append(desc_text)
+                        j += 1
+                    elif next_stripped.startswith("#"):
+                        # Empty comment line, skip
+                        j += 1
+                    else:
+                        # Non-comment line, stop collecting
+                        break
+                break
+
+        return " ".join(description_lines)
+
+    @staticmethod
     def parse_column_descriptions(sql_query: str) -> dict[str, str]:
         """
         Parses column descriptions from SQL query comments.
@@ -232,11 +277,14 @@ class IDCIndexDataManager:
         logger.debug("Parsing column descriptions from SQL query comments")
         logger.debug(sql_query)
         if sql_query is not None:
+            table_description = self.parse_table_description(sql_query)
+            logger.debug("Parsed table description: %s", table_description)
             descriptions = self.parse_column_descriptions(sql_query)
 
             # Convert BigQuery schema to JSON-serializable format
             schema_dict = {
-                "fields": [
+                "table_description": table_description,
+                "columns": [
                     {
                         "name": field.name,
                         "type": field.field_type,
@@ -244,12 +292,12 @@ class IDCIndexDataManager:
                         "description": descriptions.get(field.name, ""),
                     }
                     for field in schema
-                ]
+                ],
             }
         else:
             # If no SQL query provided, save schema without descriptions
             schema_dict = {
-                "fields": [
+                "columns": [
                     {
                         "name": field.name,
                         "type": field.field_type,
