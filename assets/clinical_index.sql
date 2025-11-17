@@ -1,3 +1,10 @@
+# table-description:
+# This table contains metadata about the tabular data, including clinical data, accompanying images that
+# is available in IDC. Think about this table as a dictionary containing information about the columns
+# for all of the tabular data accompanying individual collections in IDC. Each row corresponds to a unique
+# combination of collection, clinical data table that is available for that collection, and a column from that
+# table. Individual tables referenced from this table can be retrieved using idc-index `get_clinical_table()`
+# function.
 SELECT
   # description:
   # unique identifier of the collection

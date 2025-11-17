@@ -1,3 +1,7 @@
+# table-description:
+# This table contains metadata about the collections available in IDC. Each row corresponds to a collection,
+# and contains attributes such as the collection name, types of cancer represented, number of subjects,
+# and pointers to the resources to learn more about the content of the collection.
 SELECT
   # description:
   # name of the collection

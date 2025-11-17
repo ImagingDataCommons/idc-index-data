@@ -9,6 +9,12 @@
 -- WHERE
 --   Modality = "SM"
 
+# table-description:
+# This table contains metadata about the slide microscopy (SM) series available in IDC. Each row
+# corresponds to a DICOM series, and contains attributes specific to SM series, such as the pixel spacing at the maximum
+# resolution layer, the power of the objective lens used to digitize the slide, and the anatomic location
+# from where the imaged specimen was collected. This table can be joined with the main index table using the
+# `SeriesInstanceUID` column.
 WITH
   temp_table AS (
   SELECT
