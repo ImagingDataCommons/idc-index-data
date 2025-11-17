@@ -50,10 +50,10 @@ WITH
 SELECT
   # description:
   # unique identifier of the instance
-  dicom_all.SOPInstanceUID,
+  dicom_all.SOPInstanceUID AS SOPInstanceUID,
   # description:
   # unique identifier of the series
-  dicom_all.SeriesInstanceUID,
+  dicom_all.SeriesInstanceUID AS SeriesInstanceUID,
   -- Embedding Medium
   # description:
   # embedding medium used for the slide preparation
@@ -119,23 +119,23 @@ SELECT
   SAFE_CAST(SharedFunctionalGroupsSequence[SAFE_OFFSET(0)].PixelMeasuresSequence[SAFE_OFFSET(0)]. PixelSpacing[SAFE_OFFSET(0)] AS FLOAT64) AS PixelSpacing_0,
   # description:
   # DICOM ImageType attribute
-  dicom_all.ImageType,
+  dicom_all.ImageType AS ImageType,
   # description:
   # DICOM TransferSyntaxUID attribute
-  dicom_all.TransferSyntaxUID,
+  dicom_all.TransferSyntaxUID AS TransferSyntaxUID,
   # description:
   # size of the instance file in bytes
-  dicom_all.instance_size,
+  dicom_all.instance_size AS instance_size,
   # description:
   # number of columns in the image
-  dicom_all.TotalPixelMatrixColumns,
+  dicom_all.TotalPixelMatrixColumns AS TotalPixelMatrixColumns,
   # description:
   # number of rows in the image
-  dicom_all.TotalPixelMatrixRows,
+  dicom_all.TotalPixelMatrixRows AS TotalPixelMatrixRows,
   -- attributes needed to retrieve the selected instances/files
   # description:
   # unique identifier of the instance within the IDC
-  dicom_all.crdc_instance_uuid
+  dicom_all.crdc_instance_uuid AS crdc_instance_uuid
 FROM
   `bigquery-public-data.idc_v22.dicom_all` AS dicom_all
 LEFT JOIN
