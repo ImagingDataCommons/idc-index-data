@@ -86,6 +86,8 @@ SpecimenPreparationSequence_unnested AS (
     )
 
 SELECT
+  # description:
+  # DICOM SeriesInstanceUID identifier of the series
   temp_table.SeriesInstanceUID,
   -- Embedding Medium
   # description:
