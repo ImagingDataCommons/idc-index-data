@@ -1,3 +1,7 @@
+# table-description:
+# This is the main metadata table provided by idc-index. Each row corresponds to a DICOM series, and contains
+# attributes at the collection, patient, study, and series levels. The table also contains download-related
+# attributes, such as the AWS S3 bucket and URL to download the series.
 SELECT
   # collection level attributes
   # description:
@@ -22,7 +26,7 @@ SELECT
   # series; follow this DOI to learn more about the activity that produced
   # this series
   ANY_VALUE(source_DOI) AS source_DOI,
-  # patient level attributes
+  # patient level attributes:
   # description:
   # age of the subject at the time of imaging (DICOM attribute)
   ANY_VALUE(PatientAge) AS PatientAge,
