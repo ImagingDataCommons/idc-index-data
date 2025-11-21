@@ -423,7 +423,7 @@ class IDCIndexDataManager:
         SELECT
             MAX(idc_version) AS latest_idc_release_version
         FROM
-            `bigquery-public-data.idc_current.version_metadata`
+            `bigquery-public-data.idc_v23.version_metadata`
         """
         query_job = self.client.query(query)
         result = query_job.result()

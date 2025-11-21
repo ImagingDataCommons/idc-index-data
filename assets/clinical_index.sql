@@ -25,6 +25,6 @@ SELECT
   # values encountered in the column
   `values`
 FROM
-  `bigquery-public-data.idc_v22_clinical.column_metadata`
+  `bigquery-public-data.idc_v23_clinical.column_metadata`
 ORDER BY
   collection_id, table_name

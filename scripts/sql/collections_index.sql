@@ -40,4 +40,4 @@ SELECT
   # detailed information about the collection
   Description
 FROM
-  `bigquery-public-data.idc_v22.original_collections_metadata`
+  `bigquery-public-data.idc_v23.original_collections_metadata`
