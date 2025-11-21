@@ -3,7 +3,7 @@
 --
 -- Step 1: Declare variables
 DECLARE idc_versions ARRAY<INT64>;
-DECLARE latest_idc_version INT64 DEFAULT 22;
+DECLARE latest_idc_version INT64 DEFAULT 23;
 DECLARE union_all_query STRING;
 
 --Step 2
