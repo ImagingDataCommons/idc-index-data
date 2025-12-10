@@ -22,8 +22,8 @@ SELECT
   # collections analyzed in the analysis results collection
   Collections,
   # description:
-  # analysis artifacts included in the analysis results collection
-  AnalysisArtifacts,
+  # modalities corresponding to the analysis artifacts included in the analysis results collection
+  Modalities,
   # description:
   # timestamp of the last update to the analysis results collection
   Updated,
