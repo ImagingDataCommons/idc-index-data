@@ -41,7 +41,7 @@ SELECT
   # textual description of the study content (DICOM attribute)
   ANY_VALUE(StudyDescription) AS StudyDescription,
   # description:
-  # body part imaged (not iniapplicabletialized for SM series) (DICOM attribute)
+  # body part imaged (not applicable for SM series) (DICOM attribute)
   ANY_VALUE(dicom_curated.BodyPartExamined) AS BodyPartExamined,
   # series level attributes
   # description:
