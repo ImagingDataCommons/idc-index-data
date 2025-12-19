@@ -11,7 +11,7 @@ SELECT
   Title AS analysis_result_title,
   # description:
   # Digital Object Identifier (DOI) of the analysis results collection
-  source_doi,
+  source_doi AS source_DOI,
   # description:
   # URL for the location of additional information about the analysis results collection
   source_url,
