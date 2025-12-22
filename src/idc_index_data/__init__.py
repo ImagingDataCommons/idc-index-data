@@ -6,10 +6,14 @@ idc-index-data: ImagingDataCommons index to query and download data.
 
 from __future__ import annotations
 
-from importlib.metadata import distribution
+from importlib.metadata import distribution, version
 from pathlib import Path
 
-from ._version import version as __version__
+try:
+    from ._version import version as __version__
+except ImportError:
+    # Fallback for development/lint scenarios where _version.py doesn't exist yet
+    __version__ = version("idc-index-data")
 
 __all__ = [
     "IDC_INDEX_CSV_ARCHIVE_FILEPATH",
