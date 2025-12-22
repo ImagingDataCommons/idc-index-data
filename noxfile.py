@@ -30,8 +30,6 @@ def pylint(session: nox.Session) -> None:
     """
     # This needs to be installed into the package environment, and is slower
     # than a pre-commit check
-    # Skip data generation for pylint - we just need the code installed
-    session.env["SKIP_IDC_DATA_GENERATION"] = "1"
     session.install(".", "pylint")
     session.run("pylint", "idc_index_data", *session.posargs)
 
@@ -41,9 +39,6 @@ def tests(session: nox.Session) -> None:
     """
     Run the unit and regular tests.
     """
-    # Skip data generation for tests if GCP_PROJECT not set
-    if "GCP_PROJECT" not in os.environ:
-        session.env["SKIP_IDC_DATA_GENERATION"] = "1"
     session.install(".[test]")
     session.run("pytest", *session.posargs)
 

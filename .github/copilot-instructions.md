@@ -25,11 +25,26 @@ metadata about imaging data hosted by IDC, intended to be used by the
 ```bash
 python3 -m venv .venv
 source ./.venv/bin/activate
+export GCP_PROJECT=idc-sandbox-000  # Use sandbox for local testing
 pip install -v -e .[dev]
 pre-commit install
 ```
 
+**Note**: The `GCP_PROJECT` environment variable is required to build this
+package, as it queries BigQuery to generate the index data files. For local
+development and testing, use `GCP_PROJECT=idc-sandbox-000`. For CI/CD and
+production builds, use the appropriate Google Cloud project with proper
+authentication credentials.
+
 ### Common Commands
+
+All commands require `GCP_PROJECT` to be set in the environment:
+
+```bash
+export GCP_PROJECT=idc-sandbox-000  # Set for local testing
+```
+
+Then run:
 
 - **Run all checks**: `nox` (runs lint, pylint, and tests by default)
 - **Lint code**: `nox -s lint`
