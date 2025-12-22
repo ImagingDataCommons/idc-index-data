@@ -76,6 +76,8 @@ jobs:
           allow-prereleases: true
 
       - name: Install package
+        env:
+          IDC_INDEX_DATA_GENERATE_PARQUET: "1"
         run: python -m pip install .[test]
 
       - name: Test package

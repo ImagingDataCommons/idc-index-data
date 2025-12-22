@@ -35,6 +35,8 @@ jobs:
           export_environment_variables: true
 
       - uses: hynek/build-and-inspect-python-package@v2
+        env:
+          IDC_INDEX_DATA_GENERATE_PARQUET: "1"
 
   publish:
     needs: [dist]

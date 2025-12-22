@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-import re
+import os
 import shutil
 from pathlib import Path
 
@@ -114,6 +114,17 @@ def build(session: nox.Session) -> None:
     if build_path.exists():
         shutil.rmtree(build_path)
 
+    # Set environment variable for Parquet generation (default behavior)
+    session.env["IDC_INDEX_DATA_GENERATE_PARQUET"] = "1"
+    # Optionally generate CSV by uncommenting:
+    # session.env["IDC_INDEX_DATA_GENERATE_CSV_ARCHIVE"] = "1"
+
+    # Ensure GCP_PROJECT is set
+    if "GCP_PROJECT" not in os.environ:
+        session.error(
+            "GCP_PROJECT environment variable must be set to build the package"
+        )
+
     session.install("build")
     session.run("python", "-m", "build")
 
@@ -178,7 +189,8 @@ def bump(session: nox.Session) -> None:
     Set to a new IDC index version, use -- <version>, otherwise will use the latest version.
     """
     files = (
-        "pyproject.toml",
+        # Note: version is now managed by git tags via setuptools-scm
+        # Only SQL scripts and tests need updating
         "scripts/sql/idc_index.sql",
         "tests/test_package.py",
     )
@@ -197,9 +209,14 @@ def tag_release(session: nox.Session) -> None:
     """
 
     session.log("Run the following commands to make a release:")
-    txt = Path("pyproject.toml").read_text()
-    current_version = next(iter(re.finditer(r'^version = "([\d\.]+)$"', txt))).group(1)
-    print(
-        f"git tag --sign -m 'idc-index-data {current_version}' {current_version} main"
+    session.log("")
+    session.log("Note: Version is now managed by setuptools-scm via git tags.")
+    session.log("To create a new release, tag the main branch with the version number:")
+    session.log("")
+    session.log("Example for version 23.0.3:")
+    print("git tag --sign -m 'idc-index-data 23.0.3' 23.0.3 main")
+    print("git push origin 23.0.3")
+    session.log("")
+    session.log(
+        "The version should match the IDC index version (e.g., 23.0.3 for IDC v23)."
     )
-    print(f"git push origin {current_version}")

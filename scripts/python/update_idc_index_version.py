@@ -38,12 +38,6 @@ def _update_file(filepath, regex, replacement):
             doc_file.writelines(updated_content)
 
 
-def update_pyproject_toml(idc_index_version):
-    pattern = re.compile(r'^version = "[\w\.]+"$')
-    replacement = f'version = "{idc_index_version}.0.0"'
-    _update_file(ROOT_DIR / "pyproject.toml", pattern, replacement)
-
-
 def update_sql_scripts(idc_index_version):
     pattern = re.compile(r"idc_v\d+")
     replacement = f"idc_v{idc_index_version}"
@@ -72,7 +66,8 @@ def main():
 
     args = parser.parse_args()
 
-    update_pyproject_toml(args.idc_index_version)
+    # Note: Version is now managed by git tags via setuptools-scm
+    # Only SQL scripts and tests need updating
     update_sql_scripts(args.idc_index_version)
     update_tests(args.idc_index_version)
 
@@ -81,9 +76,13 @@ def main():
             Complete! Now run:
 
             git switch -c update-to-idc-index-{release}
-            git add -u pyproject.toml scripts/sql/idc_index.sql tests/test_package.py
+            git add -u scripts/sql/idc_index.sql tests/test_package.py
             git commit -m "Update to IDC index {release}"
             gh pr create --fill --body "Created by update_idc_index_version.py"
+
+            Then after merging, create a git tag for the new version:
+            git tag --sign -m 'idc-index-data {release}.0.3' {release}.0.3 main
+            git push origin {release}.0.3
             """
         print(textwrap.dedent(msg.format(release=args.idc_index_version)))  # noqa: T201
 

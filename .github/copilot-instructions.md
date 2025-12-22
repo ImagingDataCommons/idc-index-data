@@ -9,7 +9,7 @@ metadata about imaging data hosted by IDC, intended to be used by the
 
 ## Technology Stack
 
-- **Build System**: scikit-build-core with CMake
+- **Build System**: setuptools with setuptools-scm
 - **Package Manager**: pip
 - **Python Versions**: 3.10, 3.11, 3.12
 - **Testing**: pytest with pytest-cov
@@ -87,7 +87,7 @@ The project uses extensive ruff rules including:
 idc-index-data/
 ├── src/idc_index_data/     # Main package source
 │   ├── __init__.py         # Package exports and file path lookups
-│   └── _version.py         # Auto-generated version file
+│   └── _version.py         # Auto-generated version file (by setuptools-scm)
 ├── scripts/                # Management scripts
 │   ├── python/             # Python scripts for index management
 │   └── sql/                # SQL queries for BigQuery
@@ -95,8 +95,8 @@ idc-index-data/
 │   └── test_package.py     # Package tests
 ├── docs/                   # Sphinx documentation
 ├── pyproject.toml          # Project configuration
-├── noxfile.py              # Nox session definitions
-└── CMakeLists.txt          # Build configuration
+├── setup.py                # Custom build command for data generation
+└── noxfile.py              # Nox session definitions
 ```
 
 ## Important Considerations
@@ -109,9 +109,11 @@ logic but rather serves as a data distribution mechanism.
 
 ### Version Management
 
-- Version is defined in `pyproject.toml`
-- Use `nox -s bump` to update to new IDC index versions
-- The version should match the IDC release version
+- Version is managed by git tags via setuptools-scm (not hardcoded in
+  pyproject.toml)
+- Use `nox -s bump` to update SQL scripts and tests to new IDC index versions
+- After updating, create a git tag for the release (e.g., `23.0.3`)
+- The version tag should match the IDC release version
 - Always update both index files and test expectations when bumping version
 
 ### Data Files

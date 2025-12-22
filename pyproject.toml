@@ -1,6 +1,8 @@
 [build-system]
 requires = [
-  "scikit-build-core",
+  "setuptools>=64",
+  "setuptools-scm>=8",
+  "wheel",
   "db-dtypes",
   "google-cloud-bigquery",
   "pandas",
@@ -8,12 +10,12 @@ requires = [
   "pygithub",
   "requests"
 ]
-build-backend = "scikit_build_core.build"
+build-backend = "setuptools.build_meta"
 
 
 [project]
 name = "idc-index-data"
-version = "23.0.3"
+dynamic = ["version"]
 authors = [
   { name = "Andrey Fedorov", email = "andrey.fedorov@gmail.com" },
   { name = "Vamsi Thiriveedhi", email = "vthiriveedhi@mgh.harvard.edu" },
@@ -68,18 +70,17 @@ Discussions = "https://discourse.canceridc.dev/"
 Changelog = "https://github.com/ImagingDataCommons/idc-index-data/releases"
 
 
-[tool.scikit-build]
-minimum-version = "0.8.2"
-build-dir = "build/{wheel_tag}"
-wheel.platlib = false
-wheel.py-api = "py3"
+[tool.setuptools]
+package-dir = {"" = "src"}
 
+[tool.setuptools.packages.find]
+where = ["src"]
 
-[[tool.scikit-build.generate]]
-path = "idc_index_data/_version.py"
-template = '''
-version = "${version}"
-'''
+[tool.setuptools.package-data]
+idc_index_data = ["*.parquet", "*.csv.zip", "py.typed"]
+
+[tool.setuptools-scm]
+# Use default configuration: tag-based versioning with local suffix
 
 
 [tool.pytest.ini_options]
