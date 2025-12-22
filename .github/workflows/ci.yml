@@ -78,6 +78,7 @@ jobs:
       - name: Install package
         env:
           IDC_INDEX_DATA_GENERATE_PARQUET: "1"
+          GCP_PROJECT: ${{ vars. GCP_PROJECT }}
         run: python -m pip install .[test]
 
       - name: Test package
