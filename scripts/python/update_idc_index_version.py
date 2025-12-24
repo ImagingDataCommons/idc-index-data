@@ -47,9 +47,36 @@ def update_pyproject_toml(idc_index_version):
 
 
 def update_sql_scripts(idc_index_version):
-    pattern = re.compile(r"idc_v\d+")
-    replacement = f"idc_v{idc_index_version}"
-    _update_file(ROOT_DIR / "scripts/sql/idc_index.sql", pattern, replacement)
+    """Update all SQL files to use the new IDC version.
+
+    Updates two types of patterns:
+    1. idc_vNN in most SQL files (e.g., idc_v23 → idc_v24)
+    2. DECLARE latest_idc_version INT64 DEFAULT NN; in prior_versions_index.sql
+    """
+    # Pattern 1: Update idc_vNN in all SQL files except prior_versions_index.sql
+    idc_pattern = re.compile(r"idc_v\d+")
+    idc_replacement = f"idc_v{idc_index_version}"
+
+    # Update all .sql files in scripts/sql except prior_versions_index.sql
+    sql_dir = ROOT_DIR / "scripts" / "sql"
+    for sql_file in sql_dir.glob("*.sql"):
+        if sql_file.name != "prior_versions_index.sql":
+            _update_file(sql_file, idc_pattern, idc_replacement)
+
+    # Update all .sql files in assets
+    assets_dir = ROOT_DIR / "assets"
+    if assets_dir.exists():
+        for sql_file in assets_dir.glob("*.sql"):
+            _update_file(sql_file, idc_pattern, idc_replacement)
+
+    # Pattern 2: Update latest_idc_version in prior_versions_index.sql
+    prior_versions_file = sql_dir / "prior_versions_index.sql"
+    if prior_versions_file.exists():
+        version_pattern = re.compile(r"DECLARE latest_idc_version INT64 DEFAULT \d+;")
+        version_replacement = (
+            f"DECLARE latest_idc_version INT64 DEFAULT {idc_index_version};"
+        )
+        _update_file(prior_versions_file, version_pattern, version_replacement)
 
 
 def update_tests(idc_index_version):
@@ -92,7 +119,7 @@ def main():
             Complete! Now run:
 
             git switch -c update-to-idc-index-{release}
-            git add -u scripts/sql/idc_index.sql tests/test_package.py
+            git add -u scripts/sql/ assets/ tests/test_package.py
             git commit -m "Update to IDC index {release}"
             git tag -a {release}.0.0 -m "Update to IDC index {release}"
             gh pr create --fill --body "Created by update_idc_index_version.py"

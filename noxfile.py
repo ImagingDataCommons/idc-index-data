@@ -186,7 +186,8 @@ def bump(session: nox.Session) -> None:
     Set to a new IDC index version, use -- <version>, otherwise will use the latest version.
     """
     files = (
-        "scripts/sql/idc_index.sql",
+        "scripts/sql/",
+        "assets/",
         "tests/test_package.py",
     )
     _bump(
