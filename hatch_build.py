@@ -15,7 +15,7 @@ class IDCBuildHook(BuildHookInterface):
 
     PLUGIN_NAME = "custom"
 
-    def initialize(self, version: str, build_data: dict) -> None:
+    def initialize(self, version: str, build_data: dict) -> None:  # noqa: ARG002
         """
         Generate data files before build.
 
@@ -33,10 +33,11 @@ class IDCBuildHook(BuildHookInterface):
         """
         # 1. Validate environment
         if not os.environ.get("GCP_PROJECT"):
-            raise EnvironmentError(
+            msg = (
                 "GCP_PROJECT environment variable is not set. "
                 "This is required to generate index data files."
             )
+            raise OSError(msg)
 
         # 2. Read build options from environment or config
         # Allow override via env vars, matching CMake behavior
@@ -78,9 +79,8 @@ class IDCBuildHook(BuildHookInterface):
             self.app.display_info(f"Data generation output: {result.stdout}")
         except subprocess.CalledProcessError as e:
             self.app.display_error(f"Data generation failed: {e.stderr}")
-            raise RuntimeError(
-                f"Failed to generate index data files: {e.stderr}"
-            ) from e
+            msg = f"Failed to generate index data files: {e.stderr}"
+            raise RuntimeError(msg) from e
 
         # 4. Register generated files for inclusion
         # Files are generated in project root by default
@@ -92,9 +92,9 @@ class IDCBuildHook(BuildHookInterface):
             csv_file = root_path / "idc_index.csv.zip"
             if csv_file.exists():
                 # Map: <source> = <destination in wheel>
-                build_data.setdefault("force_include", {})[
-                    str(csv_file)
-                ] = "idc_index_data/idc_index.csv.zip"
+                build_data.setdefault("force_include", {})[str(csv_file)] = (
+                    "idc_index_data/idc_index.csv.zip"
+                )
                 self.app.display_info(f"Registered: {csv_file.name}")
 
         if generate_parquet:
@@ -105,7 +105,7 @@ class IDCBuildHook(BuildHookInterface):
             for filename in parquet_files:
                 parquet_file = root_path / filename
                 if parquet_file.exists():
-                    build_data.setdefault("force_include", {})[
-                        str(parquet_file)
-                    ] = f"idc_index_data/{filename}"
+                    build_data.setdefault("force_include", {})[str(parquet_file)] = (
+                        f"idc_index_data/{filename}"
+                    )
                     self.app.display_info(f"Registered: {filename}")
