@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-  "scikit-build-core",
+  "hatchling",
   "db-dtypes",
   "google-cloud-bigquery",
   "pandas",
@@ -8,7 +8,7 @@ requires = [
   "pygithub",
   "requests"
 ]
-build-backend = "scikit_build_core.build"
+build-backend = "hatchling.build"
 
 
 [project]
@@ -68,18 +68,25 @@ Discussions = "https://discourse.canceridc.dev/"
 Changelog = "https://github.com/ImagingDataCommons/idc-index-data/releases"
 
 
-[tool.scikit-build]
-minimum-version = "0.8.2"
-build-dir = "build/{wheel_tag}"
-wheel.platlib = false
-wheel.py-api = "py3"
+[tool.hatch.version]
+path = "src/idc_index_data/_version.py"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/idc_index_data"]
 
-[[tool.scikit-build.generate]]
-path = "idc_index_data/_version.py"
-template = '''
-version = "${version}"
-'''
+[tool.hatch.build.hooks.custom]
+# Enables our custom build hook from hatch_build.py
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "/scripts",
+  "/tests",
+  "/noxfile.py",
+  "/hatch_build.py",
+  "/README.md",
+  "/LICENSE",
+]
 
 
 [tool.pytest.ini_options]

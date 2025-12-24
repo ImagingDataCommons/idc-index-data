@@ -56,6 +56,24 @@ def update_tests(idc_index_version):
     _update_file(ROOT_DIR / "tests/test_package.py", pattern, replacement)
 
 
+def update_version_file(idc_index_version):
+    """Update src/idc_index_data/_version.py with new version."""
+    version_file = ROOT_DIR / "src" / "idc_index_data" / "_version.py"
+    rel_path = os.path.relpath(str(version_file), ROOT_DIR)
+    msg = f"Updating {rel_path}"
+    with _log(msg):
+        content = f'''"""Version information for idc-index-data."""
+
+from __future__ import annotations
+
+# Version is automatically synchronized with pyproject.toml
+# Hatchling reads this file to determine the version
+version = "{idc_index_version}.0.0"
+'''
+        with version_file.open("w") as f:
+            f.write(content)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -73,6 +91,7 @@ def main():
     args = parser.parse_args()
 
     update_pyproject_toml(args.idc_index_version)
+    update_version_file(args.idc_index_version)
     update_sql_scripts(args.idc_index_version)
     update_tests(args.idc_index_version)
 
@@ -81,7 +100,7 @@ def main():
             Complete! Now run:
 
             git switch -c update-to-idc-index-{release}
-            git add -u pyproject.toml scripts/sql/idc_index.sql tests/test_package.py
+            git add -u pyproject.toml src/idc_index_data/_version.py scripts/sql/idc_index.sql tests/test_package.py
             git commit -m "Update to IDC index {release}"
             gh pr create --fill --body "Created by update_idc_index_version.py"
             """

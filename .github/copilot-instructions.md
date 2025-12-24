@@ -9,7 +9,7 @@ metadata about imaging data hosted by IDC, intended to be used by the
 
 ## Technology Stack
 
-- **Build System**: scikit-build-core with CMake
+- **Build System**: hatchling with custom build hooks
 - **Package Manager**: pip
 - **Python Versions**: 3.10, 3.11, 3.12
 - **Testing**: pytest with pytest-cov
@@ -87,16 +87,16 @@ The project uses extensive ruff rules including:
 idc-index-data/
 ├── src/idc_index_data/     # Main package source
 │   ├── __init__.py         # Package exports and file path lookups
-│   └── _version.py         # Auto-generated version file
+│   └── _version.py         # Version file (kept in sync with pyproject.toml)
 ├── scripts/                # Management scripts
 │   ├── python/             # Python scripts for index management
 │   └── sql/                # SQL queries for BigQuery
 ├── tests/                  # Test files
 │   └── test_package.py     # Package tests
 ├── docs/                   # Sphinx documentation
+├── hatch_build.py          # Custom build hook for data generation
 ├── pyproject.toml          # Project configuration
-├── noxfile.py              # Nox session definitions
-└── CMakeLists.txt          # Build configuration
+└── noxfile.py              # Nox session definitions
 ```
 
 ## Important Considerations

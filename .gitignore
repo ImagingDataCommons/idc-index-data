@@ -26,6 +26,15 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Generated data files (created during build)
+idc_index.csv.zip
+idc_index.parquet
+prior_versions_index.parquet
+idc_index.json
+prior_versions_index.json
+collections_index.json
+analysis_results_index.json
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -136,10 +145,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
-
-# setuptools_scm
-src/*/_version.py
-
 
 # ruff
 .ruff_cache/
