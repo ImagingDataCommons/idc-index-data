@@ -100,23 +100,76 @@ pre-commit run -a
 
 to check all files.
 
-# Updating the IDC index version
+# Version Management
 
-You can update the version using:
+This project uses **hatch-vcs** for dynamic versioning based on git tags.
+
+## Version Structure
+
+- Package version follows semantic versioning: `MAJOR.MINOR.PATCH`
+- `MAJOR` version = IDC dataset version (e.g., 23, 24)
+- `MINOR.PATCH` = package updates while using the same IDC data
+
+## Updating for New IDC Data Release
+
+When IDC releases a new dataset version (e.g., v23 → v24):
 
 ```bash
 export GCP_PROJECT=idc-external-025
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/keyfile.json
-nox -s bump -- <version>
+nox -s bump -- --commit
 ```
 
-And follow the instructions it gives you. Leave off the version to bump to the
-latest version. Add `-–commit` to run the commit procedure.
+This will:
 
-# Tagging a release
+1. Update SQL scripts to query the new BigQuery dataset
+2. Update test expectations
+3. Create a new branch
+4. Commit the changes
+5. Create a git tag (e.g., `24.0.0`)
+6. Print instructions for creating a PR
+
+You can also specify a version explicitly:
+
+```bash
+nox -s bump -- --commit 24
+```
+
+Or run without `--commit` to see what would be updated:
+
+```bash
+nox -s bump -- 24
+```
+
+## Updating Package Only (Same IDC Data)
+
+For bug fixes, documentation, or code improvements that don't change the IDC
+data:
+
+1. Make your changes and commit them normally
+2. Get the current version: `git describe --tags --abbrev=0`
+3. Tag with bumped patch version:
+   ```bash
+   git tag -a 23.0.4 -m "Fix bug XYZ"
+   ```
+4. Push the tag:
+   ```bash
+   git push origin 23.0.4
+   ```
+
+## How Versioning Works
+
+- Version is determined by git tags (not `pyproject.toml`)
+- `hatch-vcs` reads the latest git tag to determine the version
+- During build, `_version.py` is auto-generated (not tracked in git)
+- `pyproject.toml` uses `dynamic = ["version"]` to defer to hatch-vcs
+
+## Tagging a Release
 
 You can print the instructions for tagging a release using:
 
 ```bash
 nox -s tag_release
 ```
+
+This will show guidance for both IDC data updates and package-only updates.
