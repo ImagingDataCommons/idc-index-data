@@ -1,6 +1,7 @@
 [build-system]
 requires = [
   "hatchling",
+  "hatch-vcs",
   "db-dtypes",
   "google-cloud-bigquery",
   "pandas",
@@ -13,7 +14,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "idc-index-data"
-version = "23.0.3"
+dynamic = ["version"]
 authors = [
   { name = "Andrey Fedorov", email = "andrey.fedorov@gmail.com" },
   { name = "Vamsi Thiriveedhi", email = "vthiriveedhi@mgh.harvard.edu" },
@@ -69,7 +70,10 @@ Changelog = "https://github.com/ImagingDataCommons/idc-index-data/releases"
 
 
 [tool.hatch.version]
-path = "src/idc_index_data/_version.py"
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/idc_index_data/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/idc_index_data"]
@@ -123,6 +127,10 @@ disallow_incomplete_defs = false
 module = "idc_index_data.*"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "idc_index_data._version"
+ignore_missing_imports = true
 
 
 [tool.ruff]

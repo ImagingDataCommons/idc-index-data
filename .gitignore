@@ -35,6 +35,9 @@ prior_versions_index.json
 collections_index.json
 analysis_results_index.json
 
+# Auto-generated version file (created by hatch-vcs)
+src/idc_index_data/_version.py
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.

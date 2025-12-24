@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import re
 import shutil
 from pathlib import Path
 
@@ -167,6 +166,15 @@ def _bump(session: nox.Session, name: str, script: str, files) -> None:
             f"Update to {name} {idc_index_version}",
             external=True,
         )
+        session.run(
+            "git",
+            "tag",
+            "-a",
+            f"{idc_index_version}.0.0",
+            "-m",
+            f"Update to {name} {idc_index_version}",
+            external=True,
+        )
         session.log(
             f'Complete! Now run: gh pr create --fill --body "Created by running `nox -s {session.name} -- --commit`"'
         )
@@ -178,7 +186,6 @@ def bump(session: nox.Session) -> None:
     Set to a new IDC index version, use -- <version>, otherwise will use the latest version.
     """
     files = (
-        "pyproject.toml",
         "scripts/sql/idc_index.sql",
         "tests/test_package.py",
     )
@@ -194,12 +201,22 @@ def bump(session: nox.Session) -> None:
 def tag_release(session: nox.Session) -> None:
     """
     Print instructions for tagging a release and pushing it to GitHub.
+
+    With hatch-vcs, versions are determined by git tags.
+    For IDC data updates: version should be <IDC_VERSION>.0.0 (e.g., 24.0.0)
+    For package-only updates: bump patch version (e.g., 24.0.1)
     """
 
     session.log("Run the following commands to make a release:")
-    txt = Path("pyproject.toml").read_text()
-    current_version = next(iter(re.finditer(r'^version = "([\d\.]+)$"', txt))).group(1)
-    print(
-        f"git tag --sign -m 'idc-index-data {current_version}' {current_version} main"
-    )
-    print(f"git push origin {current_version}")
+    session.log("")
+    session.log("For IDC data updates (new dataset version):")
+    session.log("  Use the bump session with --commit flag instead:")
+    session.log("  nox -s bump -- --commit")
+    session.log("")
+    session.log("For package-only updates (same IDC data):")
+    session.log("  1. Get current version from latest tag:")
+    session.log("     git describe --tags --abbrev=0")
+    session.log("  2. Tag with bumped patch version:")
+    session.log("     git tag --sign -a 23.0.4 -m 'idc-index-data 23.0.4'")
+    session.log("  3. Push the tag:")
+    session.log("     git push origin 23.0.4")
