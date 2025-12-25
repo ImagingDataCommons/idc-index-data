@@ -18,8 +18,8 @@ env:
   FORCE_COLOR: 3
 
 jobs:
-  dist:
-    name: CD-external-indices
+  generate-indices:
+    name: Generate index artifacts
     runs-on: ubuntu-latest
 
     steps:
@@ -50,9 +50,28 @@ jobs:
         env:
           PROJECT_ID: ${{ env.GCP_PROJECT }}
 
-      - name: Create Tagged Release
-        id: create_tagged_release
-        if: github.event_name == 'release' && github.event.action == 'published'
+      - name: Upload index artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: idc-index-artifacts
+          path: release_artifacts/
+          retention-days: 14
+          if-no-files-found: error
+
+  attach-to-release:
+    name: Attach artifacts to release
+    needs: [generate-indices]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'published'
+
+    steps:
+      - name: Download index artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: idc-index-artifacts
+          path: release_artifacts/
+
+      - name: Attach artifacts to release
         uses: ncipollo/release-action@v1
         with:
           artifacts: "release_artifacts/*.parquet,release_artifacts/*.json,release_artifacts/*.sql"
