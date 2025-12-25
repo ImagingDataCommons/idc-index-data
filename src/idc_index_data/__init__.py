@@ -15,8 +15,8 @@ from ._version import version as __version__
 __all__ = [
     "IDC_INDEX_CSV_ARCHIVE_FILEPATH",
     "IDC_INDEX_PARQUET_FILEPATH",
-    "PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH",
     "INDEX_METADATA",
+    "PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH",
     "__version__",
 ]
 

@@ -383,8 +383,8 @@ class IDCIndexDataManager:
             for file_name in Path.iterdir(directory):
                 if str(file_name).endswith(".sql"):
                     file_path = Path(directory) / file_name
-                    index_df, output_basename, schema, sql_query = self.execute_sql_query(
-                        str(file_path)
+                    index_df, output_basename, schema, sql_query = (
+                        self.execute_sql_query(str(file_path))
                     )
                     logger.debug(
                         "Executed and processed SQL queries from file: %s", file_path
@@ -396,7 +396,9 @@ class IDCIndexDataManager:
                             else Path(f"{output_basename}.csv.zip")
                         )
                         index_df.to_csv(
-                            csv_file_path, compression={"method": "zip"}, escapechar="\\"
+                            csv_file_path,
+                            compression={"method": "zip"},
+                            escapechar="\\",
                         )
                         logger.debug("Created CSV zip file: %s", csv_file_path)
 
@@ -417,7 +419,9 @@ class IDCIndexDataManager:
                             )
                         else:
                             # For prior_versions_index, save schema without descriptions
-                            self.save_schema_to_json(schema, output_basename, None, output_dir)
+                            self.save_schema_to_json(
+                                schema, output_basename, None, output_dir
+                            )
                         # Save SQL query to file
                         self.save_sql_query(sql_query, output_basename, output_dir)
 
