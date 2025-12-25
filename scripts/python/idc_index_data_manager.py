@@ -311,9 +311,9 @@ class IDCIndexDataManager:
         # Save to JSON file
         if output_dir:
             output_dir.mkdir(parents=True, exist_ok=True)
-            json_file_path = output_dir / f"{output_basename}.json"
+            json_file_path = output_dir / f"{output_basename}_schema.json"
         else:
-            json_file_path = Path(f"{output_basename}.json")
+            json_file_path = Path(f"{output_basename}_schema.json")
 
         with json_file_path.open("w") as f:
             json.dump(schema_dict, f, indent=2)
@@ -354,9 +354,10 @@ class IDCIndexDataManager:
         Generates index-data files locally by executing queries against
         the Google Cloud Platform IDC project tables.
 
-        This method iterates over SQL files in the 'scripts/sql' directory,
-        executing each query using :func:`execute_sql_query` and generating a DataFrame,
-        'index_df'. The DataFrame is then saved as compressed CSV and/or Parquet file.
+        This method iterates over SQL files in the 'scripts/sql' and 'assets'
+        directories, executing each query using :func:`execute_sql_query` and
+        generating a DataFrame, 'index_df'. The DataFrame is then saved as
+        compressed CSV and/or Parquet file, along with schema JSON and SQL files.
 
         Args:
             generate_compressed_csv: Whether to generate compressed CSV files
@@ -366,50 +367,59 @@ class IDCIndexDataManager:
 
         scripts_dir = Path(__file__).parent.parent
         sql_dir = scripts_dir / "sql"
+        assets_dir = scripts_dir.parent / "assets"
 
         if output_dir:
             output_dir.mkdir(parents=True, exist_ok=True)
 
-        for file_name in Path.iterdir(sql_dir):
-            if str(file_name).endswith(".sql"):
-                file_path = Path(sql_dir) / file_name
-                index_df, output_basename, schema, sql_query = self.execute_sql_query(
-                    str(file_path)
-                )
-                logger.debug(
-                    "Executed and processed SQL queries from file: %s", file_path
-                )
-                if generate_compressed_csv:
-                    csv_file_path = (
-                        output_dir / f"{output_basename}.csv.zip"
-                        if output_dir
-                        else Path(f"{output_basename}.csv.zip")
-                    )
-                    index_df.to_csv(
-                        csv_file_path, compression={"method": "zip"}, escapechar="\\"
-                    )
-                    logger.debug("Created CSV zip file: %s", csv_file_path)
+        # Process SQL files from both directories
+        sql_directories = [sql_dir, assets_dir]
 
-                if generate_parquet:
-                    parquet_file_path = (
-                        output_dir / f"{output_basename}.parquet"
-                        if output_dir
-                        else Path(f"{output_basename}.parquet")
-                    )
-                    index_df.to_parquet(parquet_file_path, compression="zstd")
-                    logger.debug("Created Parquet file: %s", parquet_file_path)
+        for directory in sql_directories:
+            if not directory.exists():
+                logger.warning("Directory not found: %s", directory)
+                continue
 
-                # Save schema to JSON file
-                # Skip parsing descriptions for prior_versions_index as it has dynamic SQL
-                if output_basename != "prior_versions_index":
-                    self.save_schema_to_json(
-                        schema, output_basename, sql_query, output_dir
+            for file_name in Path.iterdir(directory):
+                if str(file_name).endswith(".sql"):
+                    file_path = Path(directory) / file_name
+                    index_df, output_basename, schema, sql_query = self.execute_sql_query(
+                        str(file_path)
                     )
-                else:
-                    # For prior_versions_index, save schema without descriptions
-                    self.save_schema_to_json(schema, output_basename, None, output_dir)
-                # Save SQL query to file
-                self.save_sql_query(sql_query, output_basename, output_dir)
+                    logger.debug(
+                        "Executed and processed SQL queries from file: %s", file_path
+                    )
+                    if generate_compressed_csv:
+                        csv_file_path = (
+                            output_dir / f"{output_basename}.csv.zip"
+                            if output_dir
+                            else Path(f"{output_basename}.csv.zip")
+                        )
+                        index_df.to_csv(
+                            csv_file_path, compression={"method": "zip"}, escapechar="\\"
+                        )
+                        logger.debug("Created CSV zip file: %s", csv_file_path)
+
+                    if generate_parquet:
+                        parquet_file_path = (
+                            output_dir / f"{output_basename}.parquet"
+                            if output_dir
+                            else Path(f"{output_basename}.parquet")
+                        )
+                        index_df.to_parquet(parquet_file_path, compression="zstd")
+                        logger.debug("Created Parquet file: %s", parquet_file_path)
+
+                        # When generating parquet, also save schema and SQL files
+                        # Skip parsing descriptions for prior_versions_index as it has dynamic SQL
+                        if output_basename != "prior_versions_index":
+                            self.save_schema_to_json(
+                                schema, output_basename, sql_query, output_dir
+                            )
+                        else:
+                            # For prior_versions_index, save schema without descriptions
+                            self.save_schema_to_json(schema, output_basename, None, output_dir)
+                        # Save SQL query to file
+                        self.save_sql_query(sql_query, output_basename, output_dir)
 
     def retrieve_latest_idc_release_version(self) -> int:
         """
