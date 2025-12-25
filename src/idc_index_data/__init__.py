@@ -35,13 +35,13 @@ def _lookup(path: str, optional: bool = False) -> Path | None:
     raise FileNotFoundError(msg)
 
 
-def _load_json(path: Path | None) -> dict | None:
+def _load_json(path: Path | None) -> dict[str, object] | None:
     """Load JSON file and return as dictionary."""
     if path is None:
         return None
     try:
         with path.open() as f:
-            return json.load(f)
+            return json.load(f)  # type: ignore[no-any-return]
     except (FileNotFoundError, json.JSONDecodeError):
         return None
 
@@ -76,7 +76,7 @@ _ALL_INDICES = [
     "sm_instance_index",
 ]
 
-INDEX_METADATA: dict[str, dict[str, Path | dict | str | None]] = {}
+INDEX_METADATA: dict[str, dict[str, Path | dict[str, object] | str | None]] = {}
 
 for index_name in _ALL_INDICES:
     # Lookup file paths
