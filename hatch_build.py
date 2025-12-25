@@ -109,3 +109,31 @@ class IDCBuildHook(BuildHookInterface):
                         f"idc_index_data/{filename}"
                     )
                     self.app.display_info(f"Registered: {filename}")
+
+            # Also register schema and SQL files for ALL 7 indices
+            all_indices = [
+                "idc_index",
+                "prior_versions_index",
+                "collections_index",
+                "analysis_results_index",
+                "clinical_index",
+                "sm_index",
+                "sm_instance_index",
+            ]
+
+            for index_name in all_indices:
+                # Register schema JSON files
+                schema_file = root_path / f"{index_name}_schema.json"
+                if schema_file.exists():
+                    build_data.setdefault("force_include", {})[str(schema_file)] = (
+                        f"idc_index_data/{index_name}_schema.json"
+                    )
+                    self.app.display_info(f"Registered: {index_name}_schema.json")
+
+                # Register SQL files
+                sql_file = root_path / f"{index_name}.sql"
+                if sql_file.exists():
+                    build_data.setdefault("force_include", {})[str(sql_file)] = (
+                        f"idc_index_data/{index_name}.sql"
+                    )
+                    self.app.display_info(f"Registered: {index_name}.sql")
