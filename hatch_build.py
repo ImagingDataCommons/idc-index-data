@@ -33,11 +33,8 @@ class IDCBuildHook(BuildHookInterface):
         """
         # 1. Validate environment
         if not os.environ.get("GCP_PROJECT"):
-            msg = (
-                "GCP_PROJECT environment variable is not set. "
-                "This is required to generate index data files."
-            )
-            raise OSError(msg)
+            self.app.display_warning("Skipping data generation: GCP_PROJECT not set")
+            return
 
         # 2. Read build options from environment or config
         # Allow override via env vars, matching CMake behavior
@@ -62,7 +59,9 @@ class IDCBuildHook(BuildHookInterface):
             Path(__file__).parent / "scripts" / "python" / "idc_index_data_manager.py"
         )
 
-        cmd = [sys.executable, str(script_path)]
+        root_path = Path(self.root)
+
+        cmd = [sys.executable, str(script_path), "--output-dir", str(root_path)]
         if generate_csv:
             cmd.append("--generate-csv-archive")
         if generate_parquet:
@@ -98,6 +97,7 @@ class IDCBuildHook(BuildHookInterface):
                 self.app.display_info(f"Registered: {csv_file.name}")
 
         if generate_parquet:
+            # Register parquet files (only main indices to reduce package size)
             parquet_files = [
                 "idc_index.parquet",
                 "prior_versions_index.parquet",
