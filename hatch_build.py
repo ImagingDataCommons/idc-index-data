@@ -90,7 +90,6 @@ class IDCBuildHook(BuildHookInterface):
         if generate_csv:
             csv_file = root_path / "idc_index.csv.zip"
             if csv_file.exists():
-                # Map: <source> = <destination in wheel>
                 build_data.setdefault("force_include", {})[str(csv_file)] = (
                     "idc_index_data/idc_index.csv.zip"
                 )

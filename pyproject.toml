@@ -79,7 +79,7 @@ version-file = "src/idc_index_data/_version.py"
 packages = ["src/idc_index_data"]
 
 [tool.hatch.build.hooks.custom]
-# Enables our custom build hook from hatch_build.py
+module = "hatch_build:IDCBuildHook"
 
 [tool.hatch.build.targets.sdist]
 include = [
