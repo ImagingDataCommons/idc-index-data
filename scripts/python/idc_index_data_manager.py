@@ -464,6 +464,12 @@ if __name__ == "__main__":
         help="Generate idc_index.parquet file",
     )
     parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=None,
+        help="Output directory for generated files (default: current directory)",
+    )
+    parser.add_argument(
         "--retrieve-latest-idc-release-version",
         action="store_true",
         help="Retrieve and display the latest IDC release version",
@@ -480,6 +486,7 @@ if __name__ == "__main__":
         IDCIndexDataManager(args.project).generate_index_data_files(
             generate_compressed_csv=args.generate_csv_archive,
             generate_parquet=args.generate_parquet,
+            output_dir=args.output_dir,
         )
     elif args.retrieve_latest_idc_release_version:
         logging.basicConfig(level=logging.ERROR, force=True)
