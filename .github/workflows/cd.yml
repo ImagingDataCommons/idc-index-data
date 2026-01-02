@@ -49,6 +49,6 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: Packages
-          path: .
+          path: dist
 
       - uses: pypa/gh-action-pypi-publish@release/v1
