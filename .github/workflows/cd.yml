@@ -18,14 +18,24 @@ env:
   FORCE_COLOR: 3
 
 jobs:
-  dist:
-    name: Distribution build
+  generate-indices:
+    name: Generate index artifacts
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install db-dtypes google-cloud-bigquery pandas pyarrow
 
       - name: Authorize Google Cloud
         uses: google-github-actions/auth@v2
@@ -34,7 +44,87 @@ jobs:
           create_credentials_file: true
           export_environment_variables: true
 
-      - uses: hynek/build-and-inspect-python-package@v2
+      - name: Execute SQL Query and Generate Parquet Files
+        run: |
+          python scripts/python/generate-indices.py
+        env:
+          PROJECT_ID: ${{ env.GCP_PROJECT }}
+
+      - name: Upload index artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: idc-index-artifacts
+          path: release_artifacts/
+          retention-days: 14
+          if-no-files-found: error
+
+  dist:
+    name: Distribution build
+    runs-on: ubuntu-latest
+    needs: [generate-indices]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download pre-generated index artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: idc-index-artifacts
+          path: release_artifacts/
+
+      - name: Move artifacts to project root for packaging
+        run: |
+          mv release_artifacts/*.parquet ./src/idc_index_data || true
+          mv release_artifacts/*.json ./src/idc_index_data || true
+          mv release_artifacts/*.sql ./src/idc_index_data || true
+          mv release_artifacts/*.zip ./src/idc_index_data || true
+          ls -la
+
+      - name: Build distribution package
+        run: |
+          # Unset GCP_PROJECT to prevent build hook from regenerating files
+          # Files already exist from the generate-indices job
+          unset GCP_PROJECT
+          python -m pip install --upgrade build
+          python -m build
+        env:
+          # Explicitly unset GCP_PROJECT to skip data generation in build hook
+          GCP_PROJECT: ""
+
+      - name: Upload distribution artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Packages
+          path: dist/
+          retention-days: 14
+
+      - name: Inspect package contents
+        run: |
+          python -m pip install --upgrade check-wheel-contents
+          ls -lh dist/
+          check-wheel-contents dist/*.whl
+
+  attach-to-release:
+    name: Attach artifacts to release
+    needs: [generate-indices]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'published'
+
+    steps:
+      - name: Download index artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: idc-index-artifacts
+          path: release_artifacts/
+
+      - name: Attach artifacts to release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "release_artifacts/*.parquet,release_artifacts/*.json,release_artifacts/*.sql"
+          allowUpdates: true
+          omitBodyDuringUpdate: true
 
   publish:
     needs: [dist]
