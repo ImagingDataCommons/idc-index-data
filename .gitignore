@@ -26,17 +26,6 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Generated data files (created during build)
-idc_index.csv.zip
-*.parquet
-
-# Generated schema files (created during build)
-*_schema.json
-
-# Generated SQL files (created during build)
-# Note: tracked SQL files already in the repo remain unaffected
-*.sql
-
 # Auto-generated version file (created by hatch-vcs)
 src/idc_index_data/_version.py
 
