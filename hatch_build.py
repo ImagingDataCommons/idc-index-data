@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import ClassVar
 
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 
@@ -14,6 +15,24 @@ class IDCBuildHook(BuildHookInterface):
     """Build hook to generate index data files before packaging."""
 
     PLUGIN_NAME = "custom"
+
+    PARQUET_WHITELIST: ClassVar[set[str]] = {
+        "idc_index.parquet",
+        "prior_versions_index.parquet",
+    }
+
+    def _prune_unwhitelisted_parquet_files(self) -> None:
+        """Remove parquet files not explicitly whitelisted from the package dir."""
+        package_dir = Path(self.root) / "src" / "idc_index_data"
+        if not package_dir.exists():
+            return
+
+        for parquet_file in package_dir.glob("*.parquet"):
+            if parquet_file.name not in self.PARQUET_WHITELIST:
+                parquet_file.unlink()
+                self.app.display_info(
+                    f"Removed non-whitelisted parquet: {parquet_file.name}"
+                )
 
     def initialize(self, version: str, build_data: dict) -> None:  # noqa: ARG002
         """
@@ -31,6 +50,9 @@ class IDCBuildHook(BuildHookInterface):
                 - artifacts: List of additional files to include
                 - force_include: Dict mapping source -> dest paths
         """
+        # Remove parquet files that are optional to reduce package size
+        self._prune_unwhitelisted_parquet_files()
+
         # 1. Validate environment
         if not os.environ.get("GCP_PROJECT"):
             self.app.display_warning("Skipping data generation: GCP_PROJECT not set")
