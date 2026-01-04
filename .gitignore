@@ -28,21 +28,14 @@ MANIFEST
 
 # Generated data files (created during build)
 idc_index.csv.zip
-idc_index.parquet
-prior_versions_index.parquet
+*.parquet
 
 # Generated schema files (created during build)
 *_schema.json
 
-# Generated SQL files at project root (created during build)
-# Note: The source SQL files in scripts/sql and assets are tracked in git
-idc_index.sql
-prior_versions_index.sql
-collections_index.sql
-analysis_results_index.sql
-clinical_index.sql
-sm_index.sql
-sm_instance_index.sql
+# Generated SQL files (created during build)
+# Note: tracked SQL files already in the repo remain unaffected
+*.sql
 
 # Auto-generated version file (created by hatch-vcs)
 src/idc_index_data/_version.py
