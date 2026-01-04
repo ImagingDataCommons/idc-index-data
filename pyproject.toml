@@ -77,6 +77,7 @@ version-file = "src/idc_index_data/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/idc_index_data"]
+ignore-vcs = true
 
 [tool.hatch.build.hooks.custom]
 module = "hatch_build:IDCBuildHook"
