@@ -44,7 +44,9 @@ repos:
     hooks:
       - id: ruff-check
         args: ["--fix", "--show-fixes"]
+        exclude: ^scripts/python/compare_parquet\.py$
       - id: ruff-format
+        exclude: ^scripts/python/compare_parquet\.py$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: "v1.19.1"
