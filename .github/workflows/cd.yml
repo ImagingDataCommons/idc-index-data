@@ -46,9 +46,11 @@ jobs:
 
       - name: Execute SQL Query and Generate Parquet Files
         run: |
-          python scripts/python/generate-indices.py
+          python scripts/python/idc_index_data_manager.py \
+            --generate-parquet \
+            --output-dir release_artifacts
         env:
-          PROJECT_ID: ${{ env.GCP_PROJECT }}
+          GCP_PROJECT: ${{ env.GCP_PROJECT }}
 
       - name: Upload index artifacts
         uses: actions/upload-artifact@v4
@@ -80,7 +82,7 @@ jobs:
           mv release_artifacts/*.json ./src/idc_index_data || true
           mv release_artifacts/*.sql ./src/idc_index_data || true
           mv release_artifacts/*.zip ./src/idc_index_data || true
-          ls -la
+          ls -la ./src/idc_index_data
 
       - name: Build distribution package
         run: |
