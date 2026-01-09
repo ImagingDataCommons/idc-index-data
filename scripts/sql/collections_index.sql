@@ -35,7 +35,7 @@ SELECT
   Status,
   # description:
   # timestamp of the last update to the collection
-  Updated,
+  SAFE_CAST(Updated AS STRING) AS Updated,
   # description:
   # detailed information about the collection
   Description

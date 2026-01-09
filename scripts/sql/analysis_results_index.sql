@@ -26,7 +26,7 @@ SELECT
   Modalities,
   # description:
   # timestamp of the last update to the analysis results collection
-  Updated,
+  SAFE_CAST(Updated AS STRING) AS Updated,
   # description:
   # license URL for the analysis results collection
   license_url,

@@ -36,7 +36,7 @@ SELECT
   # study level attributes
   # description:
   # date of the study (de-identified) (DICOM attribute)
-  ANY_VALUE(StudyDate) AS StudyDate,
+  ANY_VALUE(SAFE_CAST(StudyDate AS STRING)) AS StudyDate,
   # description:
   # textual description of the study content (DICOM attribute)
   ANY_VALUE(StudyDescription) AS StudyDescription,
