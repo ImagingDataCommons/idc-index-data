@@ -250,8 +250,6 @@ class IDCIndexDataManager:
         query_job_result = self.client.query(sql_query).result()
         schema = query_job_result.schema  # Get schema from BigQuery QueryJob
         index_df = query_job_result.to_dataframe()
-        if "StudyDate" in index_df.columns:
-            index_df["StudyDate"] = index_df["StudyDate"].astype(str)
         output_basename = Path(file_path).name.split(".")[0]
         logger.debug("Executed SQL query from file: %s", file_path)
         return index_df, output_basename, schema, sql_query
