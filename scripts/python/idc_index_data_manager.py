@@ -271,6 +271,18 @@ class IDCIndexDataManager:
             sql_query: The SQL query string to parse for column descriptions
             output_dir: Optional directory path for the output file
         """
+        # Check for unsupported types that pandas cannot handle properly
+        unsupported_types = {"DATE", "TIME", "DATETIME", "GEOGRAPHY", "JSON"}
+        for field in schema:
+            if field.field_type in unsupported_types:
+                error_msg = (
+                    f"Unsupported type '{field.field_type}' found for column '{field.name}' "
+                    f"in {output_basename}. Pandas does not properly support this BigQuery type. "
+                    f"Please convert this column to a supported type (e.g., STRING or TIMESTAMP)."
+                )
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+
         # Parse column descriptions from SQL comments
         logger.debug("Parsing column descriptions from SQL query comments")
         logger.debug(sql_query)
