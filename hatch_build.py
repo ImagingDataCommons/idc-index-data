@@ -16,9 +16,11 @@ class IDCBuildHook(BuildHookInterface):
 
     PLUGIN_NAME = "custom"
 
-    PARQUET_WHITELIST: ClassVar[set[str]] = {
-        "idc_index.parquet",
-        "prior_versions_index.parquet",
+    # Parquet files to exclude from the package to reduce size
+    PARQUET_EXCLUDE_LIST: ClassVar[set[str]] = {
+        "sm_index.parquet",
+        "sm_instance_index.parquet",
+        "clinical_index.parquet",
     }
 
     def _prune_unwhitelisted_parquet_files(self) -> None:
@@ -28,7 +30,7 @@ class IDCBuildHook(BuildHookInterface):
             return
 
         for parquet_file in package_dir.glob("*.parquet"):
-            if parquet_file.name not in self.PARQUET_WHITELIST:
+            if parquet_file.name in self.PARQUET_EXCLUDE_LIST:
                 parquet_file.unlink()
                 self.app.display_info(
                     f"Removed non-whitelisted parquet: {parquet_file.name}"
