@@ -23,8 +23,8 @@ class IDCBuildHook(BuildHookInterface):
         "clinical_index.parquet",
     }
 
-    def _prune_unwhitelisted_parquet_files(self) -> None:
-        """Remove parquet files not explicitly whitelisted from the package dir."""
+    def _prune_excluded_parquet_files(self) -> None:
+        """Remove parquet files in the exclude list from the package dir."""
         package_dir = Path(self.root) / "src" / "idc_index_data"
         if not package_dir.exists():
             return
@@ -32,9 +32,7 @@ class IDCBuildHook(BuildHookInterface):
         for parquet_file in package_dir.glob("*.parquet"):
             if parquet_file.name in self.PARQUET_EXCLUDE_LIST:
                 parquet_file.unlink()
-                self.app.display_info(
-                    f"Removed non-whitelisted parquet: {parquet_file.name}"
-                )
+                self.app.display_info(f"Removed excluded parquet: {parquet_file.name}")
 
     def initialize(self, version: str, build_data: dict) -> None:  # noqa: ARG002
         """
@@ -53,7 +51,7 @@ class IDCBuildHook(BuildHookInterface):
                 - force_include: Dict mapping source -> dest paths
         """
         # Remove parquet files that are optional to reduce package size
-        self._prune_unwhitelisted_parquet_files()
+        self._prune_excluded_parquet_files()
 
         # 1. Validate environment
         if not os.environ.get("GCP_PROJECT"):
@@ -120,43 +118,30 @@ class IDCBuildHook(BuildHookInterface):
                 self.app.display_info(f"Registered: {csv_file.name}")
 
         if generate_parquet:
-            # Register parquet files (only main indices to reduce package size)
-            parquet_files = [
-                "idc_index.parquet",
-                "prior_versions_index.parquet",
-            ]
-            for filename in parquet_files:
-                parquet_file = root_path / filename
-                if parquet_file.exists():
+            # Register parquet files (excluding large indices to reduce package size)
+            # Dynamically discover all generated parquet files
+            for parquet_file in root_path.glob("*.parquet"):
+                if parquet_file.name not in self.PARQUET_EXCLUDE_LIST:
                     build_data.setdefault("force_include", {})[str(parquet_file)] = (
-                        f"idc_index_data/{filename}"
+                        f"idc_index_data/{parquet_file.name}"
                     )
-                    self.app.display_info(f"Registered: {filename}")
+                    self.app.display_info(f"Registered: {parquet_file.name}")
 
-            # Also register schema and SQL files for ALL 7 indices
-            all_indices = [
-                "idc_index",
-                "prior_versions_index",
-                "collections_index",
-                "analysis_results_index",
-                "clinical_index",
-                "sm_index",
-                "sm_instance_index",
-            ]
+            # Also register schema and SQL files for all indices
+            # Discover index names from generated schema files
+            for schema_file in root_path.glob("*_schema.json"):
+                index_name = schema_file.stem.replace("_schema", "")
 
-            for index_name in all_indices:
-                # Register schema JSON files
-                schema_file = root_path / f"{index_name}_schema.json"
-                if schema_file.exists():
-                    build_data.setdefault("force_include", {})[str(schema_file)] = (
-                        f"idc_index_data/{index_name}_schema.json"
-                    )
-                    self.app.display_info(f"Registered: {index_name}_schema.json")
+                # Register schema JSON file
+                build_data.setdefault("force_include", {})[str(schema_file)] = (
+                    f"idc_index_data/{schema_file.name}"
+                )
+                self.app.display_info(f"Registered: {schema_file.name}")
 
-                # Register SQL files
+                # Register corresponding SQL file if it exists
                 sql_file = root_path / f"{index_name}.sql"
                 if sql_file.exists():
                     build_data.setdefault("force_include", {})[str(sql_file)] = (
-                        f"idc_index_data/{index_name}.sql"
+                        f"idc_index_data/{sql_file.name}"
                     )
-                    self.app.display_info(f"Registered: {index_name}.sql")
+                    self.app.display_info(f"Registered: {sql_file.name}")
