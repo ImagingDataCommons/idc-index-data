@@ -4,6 +4,8 @@
 :maxdepth: 2
 :hidden:
 
+dev/repository-overview
+dev/adding-new-index
 ```
 
 ```{include} ../README.md
