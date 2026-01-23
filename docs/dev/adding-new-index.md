@@ -82,6 +82,10 @@ The index name must match the SQL filename without the `.sql` extension.
 
 If your index generates a large Parquet file (>5MB), add it to the exclusion list in `hatch_build.py` to reduce package size:
 
+```{warning}
+PyPI enforces a **100 MB maximum file size** for uploaded packages. If adding your index would push the total package size over this limit, you **must** add it to the exclusion list. Excluded files are still distributed via GitHub release assets.
+```
+
 ```python
 PARQUET_EXCLUDE_LIST: ClassVar[set[str]] = {
     "sm_index.parquet",
