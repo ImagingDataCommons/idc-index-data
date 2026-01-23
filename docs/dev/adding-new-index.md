@@ -1,10 +1,12 @@
 # Adding a New Index
 
-This guide explains how to add a new metadata index to the idc-index-data package.
+This guide explains how to add a new metadata index to the idc-index-data
+package.
 
 ## Overview
 
 Each index is:
+
 - Defined as a **BigQuery SQL query** with embedded documentation
 - Generated as **Parquet files** and **JSON schema files**
 - Registered in the Python package for programmatic access
@@ -17,7 +19,8 @@ Each index is:
 
 ## Step 1: Create the SQL Query File
 
-Create a new SQL file in the `assets/` directory following the naming convention `{index_name}.sql` (e.g., `rt_index.sql` for a radiotherapy index).
+Create a new SQL file in the `assets/` directory following the naming convention
+`{index_name}.sql` (e.g., `rt_index.sql` for a radiotherapy index).
 
 ### Required SQL Structure
 
@@ -47,20 +50,25 @@ WHERE
 
 ### Documentation Rules
 
-1. **Table description** - Must start with `# table-description:` at the top of the file
-2. **Column descriptions** - Every column in the SELECT must be preceded by `# description:`
-3. **No empty descriptions** - The build will fail if any column lacks a description
+1. **Table description** - Must start with `# table-description:` at the top of
+   the file
+2. **Column descriptions** - Every column in the SELECT must be preceded by
+   `# description:`
+3. **No empty descriptions** - The build will fail if any column lacks a
+   description
 
 ### Example
 
 See `assets/seg_index.sql` for a complete example showing:
+
 - Complex CTEs (Common Table Expressions)
 - Nested UNNEST operations
 - Proper comment placement for all columns
 
 ## Step 2: Register the Index
 
-Edit `src/idc_index_data/__init__.py` and add your index name to the `_ALL_INDICES` list:
+Edit `src/idc_index_data/__init__.py` and add your index name to the
+`_ALL_INDICES` list:
 
 ```python
 _ALL_INDICES = [
@@ -80,7 +88,8 @@ The index name must match the SQL filename without the `.sql` extension.
 
 ## Step 3: (Optional) Exclude Large Parquet Files
 
-If your index generates a large Parquet file (>5MB), add it to the exclusion list in `hatch_build.py` to reduce package size:
+If your index generates a large Parquet file (>5MB), add it to the exclusion
+list in `hatch_build.py` to reduce package size:
 
 ```{warning}
 PyPI enforces a **100 MB maximum file size** for uploaded packages. If adding your index would push the total package size over this limit, you **must** add it to the exclusion list. Excluded files are still distributed via GitHub release assets.
@@ -96,7 +105,8 @@ PARQUET_EXCLUDE_LIST: ClassVar[set[str]] = {
 }
 ```
 
-Excluded parquet files are still generated and attached to GitHub releases but not bundled in the PyPI package.
+Excluded parquet files are still generated and attached to GitHub releases but
+not bundled in the PyPI package.
 
 ## Step 4: Test Locally
 
@@ -113,6 +123,7 @@ python scripts/python/idc_index_data_manager.py \
 ```
 
 This will generate:
+
 - `your_new_index.parquet` - The data file
 - `your_new_index_schema.json` - Schema with column descriptions
 - `your_new_index.sql` - Copy of your SQL query
@@ -124,7 +135,9 @@ nox -s tests
 ```
 
 Key tests to pass:
-- `test_index_metadata_has_all_indices` - Verifies your index is in `INDEX_METADATA`
+
+- `test_index_metadata_has_all_indices` - Verifies your index is in
+  `INDEX_METADATA`
 - `test_index_metadata_structure` - Validates the metadata structure
 - `test_index_metadata_schema_content` - Checks schema is properly generated
 
@@ -140,17 +153,18 @@ Brief explanation of the data source and any dependencies.
 
 ## Files Modified Summary
 
-| File | Change |
-|------|--------|
-| `assets/{index_name}.sql` | **Create** - SQL query with documentation |
-| `src/idc_index_data/__init__.py` | **Edit** - Add to `_ALL_INDICES` list |
-| `hatch_build.py` | **Edit** (optional) - Add to `PARQUET_EXCLUDE_LIST` if large |
+| File                             | Change                                                       |
+| -------------------------------- | ------------------------------------------------------------ |
+| `assets/{index_name}.sql`        | **Create** - SQL query with documentation                    |
+| `src/idc_index_data/__init__.py` | **Edit** - Add to `_ALL_INDICES` list                        |
+| `hatch_build.py`                 | **Edit** (optional) - Add to `PARQUET_EXCLUDE_LIST` if large |
 
 ## SQL Best Practices
 
 ### BigQuery Table References
 
 Use `idc_current` for the latest data:
+
 ```sql
 FROM `bigquery-public-data.idc_current.dicom_metadata`
 ```
@@ -158,6 +172,7 @@ FROM `bigquery-public-data.idc_current.dicom_metadata`
 ### Safe Array Access
 
 Use `SAFE_OFFSET` to avoid errors on empty arrays:
+
 ```sql
 array_column[SAFE_OFFSET(0)] AS first_element
 ```
@@ -165,6 +180,7 @@ array_column[SAFE_OFFSET(0)] AS first_element
 ### Aggregation Patterns
 
 For series-level indexes, use aggregation functions:
+
 ```sql
 SELECT
   SeriesInstanceUID,
@@ -178,6 +194,7 @@ GROUP BY SeriesInstanceUID
 ### Unsupported Types
 
 Avoid these BigQuery types (they fail schema validation):
+
 - `DATE`, `TIME`, `DATETIME` - Use `TIMESTAMP` or `STRING` instead
 - `GEOGRAPHY`, `JSON` - Convert to `STRING`
 
@@ -186,9 +203,11 @@ Avoid these BigQuery types (they fail schema validation):
 After successful build, your index produces:
 
 ### Parquet File (`{index_name}.parquet`)
+
 Columnar data format with zstd compression containing the query results.
 
 ### Schema JSON (`{index_name}_schema.json`)
+
 ```json
 {
   "table_description": "Your table description from comments",
@@ -204,14 +223,17 @@ Columnar data format with zstd compression containing the query results.
 ```
 
 ### SQL File (`{index_name}.sql`)
+
 Copy of your original query for reference.
 
 ## CI/CD Integration
 
 Once merged, the GitHub Actions workflow automatically:
+
 1. Executes your SQL query against BigQuery
 2. Generates parquet and schema files
 3. Attaches files to GitHub releases
 4. Publishes updated package to PyPI
 
-No additional configuration is needed - the build system discovers SQL files automatically from both `scripts/sql/` and `assets/` directories.
+No additional configuration is needed - the build system discovers SQL files
+automatically from both `scripts/sql/` and `assets/` directories.
