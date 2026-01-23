@@ -1,8 +1,8 @@
 # table-description:
-# This table contains one row per DICOM Segmentation 
-# SeriesInstanceUID available from IDC, and captures 
-# key metadata about the segmentation series including 
-# the number of segments, segmentation type, algorithm 
+# This table contains one row per DICOM Segmentation
+# SeriesInstanceUID available from IDC, and captures
+# key metadata about the segmentation series including
+# the number of segments, segmentation type, algorithm
 # type and name, and the segmented image series.
 WITH
   segmentations AS (
