@@ -21,6 +21,7 @@ class IDCBuildHook(BuildHookInterface):
         "sm_index.parquet",
         "sm_instance_index.parquet",
         "clinical_index.parquet",
+        "seg_index.parquet",
     }
 
     def _prune_excluded_parquet_files(self) -> None:
