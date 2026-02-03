@@ -19,7 +19,7 @@ WITH
               SegmentSequence,
               SegmentationType
             FROM
-              `bigquery-public-data.idc_current.dicom_metadata`
+              `bigquery-public-data.idc_v23.dicom_metadata`
             WHERE
               # more reliable than Modality = "SEG"
               SOPClassUID = "1.2.840.10008.5.1.4.1.1.66.4"
@@ -95,7 +95,7 @@ WITH
           SourceImageSequence[SAFE_OFFSET(0)].ReferencedSOPInstanceUID
             AS sis_one
         FROM
-          `bigquery-public-data.idc_current.dicom_all`
+          `bigquery-public-data.idc_v23.dicom_all`
         WHERE
           Modality = "SEG"
           AND SOPClassUID = "1.2.840.10008.5.1.4.1.1.66.4"
@@ -120,7 +120,7 @@ WITH
     FROM
       coalesced_ref
     JOIN
-      `bigquery-public-data.idc_current.dicom_all` AS dicom_all
+      `bigquery-public-data.idc_v23.dicom_all` AS dicom_all
       ON
         coalesced_ref.referenced_sop = dicom_all.SOPInstanceUID
     RIGHT JOIN
