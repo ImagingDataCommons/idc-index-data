@@ -62,7 +62,8 @@ WHERE
 
 ### Example
 
-See `assets/seg_index.sql` or `assets/ann_index.sql` for complete examples showing:
+See `assets/seg_index.sql` or `assets/ann_index.sql` for complete examples
+showing:
 
 - Complex CTEs (Common Table Expressions)
 - Nested UNNEST operations
