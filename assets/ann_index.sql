@@ -94,7 +94,7 @@ SELECT
   ANY_VALUE(ann_base.collection_id) AS collection_id,
 
   # description:
-  # coordinate type of the annotations (2D or 3D)
+  # coordinate type of the annotations (2D or 3D) as defined in DICOM AnnotationCoordinateType attribute
   ANY_VALUE(ann_base.AnnotationCoordinateType) AS AnnotationCoordinateType,
 
   # description:
@@ -106,35 +106,38 @@ SELECT
   ANY_VALUE(series_aggregated.total_annotations) AS total_annotations,
 
   # description:
-  # comma-separated list of distinct graphic types used (POINT, POLYLINE, POLYGON, ELLIPSE, RECTANGLE)
+  # comma-separated list of distinct graphic types used (POINT, POLYLINE, POLYGON, ELLIPSE, RECTANGLE),
+  # aggregated from DICOM GraphicType attribute across all annotation groups
   ANY_VALUE(series_aggregated.GraphicTypes) AS GraphicTypes,
 
   # description:
-  # comma-separated list of annotation generation types (MANUAL or AUTOMATIC)
+  # comma-separated list of annotation generation types (MANUAL or AUTOMATIC),
+  # aggregated from DICOM AnnotationGroupGenerationType attribute
   ANY_VALUE(series_aggregated.AnnotationGenerationTypes) AS AnnotationGenerationTypes,
 
   # description:
-  # array of annotation group labels describing each group
+  # array of annotation group labels from DICOM AnnotationGroupLabel attribute
   ANY_VALUE(series_aggregated.AnnotationGroupLabels) AS AnnotationGroupLabels,
 
   # description:
-  # array of annotation property category code meanings describing what categories of objects are annotated
+  # array of annotation property category code meanings from DICOM AnnotationPropertyCategoryCodeSequence
   ANY_VALUE(series_aggregated.AnnotationPropertyCategories) AS AnnotationPropertyCategories,
 
   # description:
-  # array of annotation property type code meanings describing what types of objects are annotated
+  # array of annotation property type code meanings from DICOM AnnotationPropertyTypeCodeSequence
   ANY_VALUE(series_aggregated.AnnotationPropertyTypes) AS AnnotationPropertyTypes,
 
   # description:
-  # comma-separated algorithm names used to generate automatic annotations (when applicable)
+  # comma-separated algorithm names from DICOM AlgorithmName attribute
+  # in AnnotationGroupAlgorithmIdentificationSequence (when applicable)
   ANY_VALUE(series_aggregated.AlgorithmNames) AS AlgorithmNames,
 
   # description:
-  # content label for the annotation series
+  # content label as defined in DICOM ContentLabel attribute
   ANY_VALUE(ann_base.ContentLabel) AS ContentLabel,
 
   # description:
-  # content description for the annotation series
+  # content description as defined in DICOM ContentDescription attribute
   ANY_VALUE(ann_base.ContentDescription) AS ContentDescription,
 
   # description:
