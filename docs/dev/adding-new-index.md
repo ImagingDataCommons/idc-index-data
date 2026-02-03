@@ -56,6 +56,9 @@ WHERE
    `# description:`
 3. **No empty descriptions** - The build will fail if any column lacks a
    description
+4. **DICOM provenance** - For columns that directly map to or are derived from
+   DICOM attributes, include the source attribute name in the description (see
+   examples below)
 
 ### Example
 
@@ -201,6 +204,45 @@ Avoid these BigQuery types (they fail schema validation):
 
 - `DATE`, `TIME`, `DATETIME` - Use `TIMESTAMP` or `STRING` instead
 - `GEOGRAPHY`, `JSON` - Convert to `STRING`
+
+### DICOM Attribute Provenance
+
+For columns derived from DICOM attributes, document the source in the column
+description. This helps users understand the data lineage and find related
+documentation in the DICOM standard.
+
+**Examples:**
+
+```sql
+# description:
+# coordinate type (2D or 3D) as defined in DICOM AnnotationCoordinateType attribute
+AnnotationCoordinateType,
+
+# description:
+# segmentation algorithm type as available in DICOM SegmentAlgorithmType attribute
+SegmentAlgorithmType,
+
+# description:
+# pixel spacing in mm, derived from DICOM PixelSpacing attribute
+min_PixelSpacing,
+
+# description:
+# anatomic location CodeMeaning from DICOM PrimaryAnatomicStructureSequence
+# in SpecimenDescriptionSequence
+primaryAnatomicStructure_CodeMeaning,
+
+# description:
+# algorithm name from DICOM AlgorithmName attribute in
+# AnnotationGroupAlgorithmIdentificationSequence (when applicable)
+AlgorithmName,
+```
+
+**Patterns to follow:**
+
+- Direct attribute: `"as defined in DICOM {AttributeName} attribute"`
+- Derived value: `"derived from DICOM {AttributeName} attribute"`
+- Nested sequence: `"from DICOM {AttributeName} in {ParentSequence}"`
+- Code sequence: `"CodeMeaning from DICOM {SequenceName}"`
 
 ## Generated Output Files
 

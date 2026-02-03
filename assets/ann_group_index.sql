@@ -49,57 +49,58 @@ SELECT
   ann_instances.collection_id,
 
   # description:
-  # sequential number identifying this annotation group within the instance
+  # sequential number identifying this annotation group as defined in DICOM AnnotationGroupNumber attribute
   group_item.AnnotationGroupNumber,
 
   # description:
-  # unique identifier for this annotation group
+  # unique identifier for this annotation group as defined in DICOM AnnotationGroupUID attribute
   group_item.AnnotationGroupUID,
 
   # description:
-  # human-readable label for this annotation group
+  # human-readable label as defined in DICOM AnnotationGroupLabel attribute
   group_item.AnnotationGroupLabel,
 
   # description:
-  # how the annotations were generated (MANUAL or AUTOMATIC)
+  # how the annotations were generated (MANUAL or AUTOMATIC) as defined in DICOM AnnotationGroupGenerationType attribute
   group_item.AnnotationGroupGenerationType,
 
   # description:
-  # total number of annotations in this group
+  # total number of annotations in this group as defined in DICOM NumberOfAnnotations attribute
   group_item.NumberOfAnnotations,
 
   # description:
-  # type of graphic used for annotations (POINT, POLYLINE, POLYGON, ELLIPSE, RECTANGLE)
+  # type of graphic used for annotations (POINT, POLYLINE, POLYGON, ELLIPSE, RECTANGLE) as defined in DICOM GraphicType attribute
   group_item.GraphicType,
 
   # description:
-  # coordinate type (2D or 3D)
+  # coordinate type (2D or 3D) as defined in DICOM AnnotationCoordinateType attribute
   ann_instances.AnnotationCoordinateType,
 
   # description:
-  # annotation property category code tuple (CodingSchemeDesignator:CodeValue)
+  # annotation property category code tuple (CodingSchemeDesignator:CodeValue) from DICOM AnnotationPropertyCategoryCodeSequence
   CONCAT(
     group_item.AnnotationPropertyCategoryCodeSequence[SAFE_OFFSET(0)].CodingSchemeDesignator, ":",
     group_item.AnnotationPropertyCategoryCodeSequence[SAFE_OFFSET(0)].CodeValue
   ) AS AnnotationPropertyCategory_code,
 
   # description:
-  # human-readable meaning of the annotation property category
+  # human-readable meaning of the annotation property category from DICOM AnnotationPropertyCategoryCodeSequence
   group_item.AnnotationPropertyCategoryCodeSequence[SAFE_OFFSET(0)].CodeMeaning AS AnnotationPropertyCategory_CodeMeaning,
 
   # description:
-  # annotation property type code tuple (CodingSchemeDesignator:CodeValue)
+  # annotation property type code tuple (CodingSchemeDesignator:CodeValue) from DICOM AnnotationPropertyTypeCodeSequence
   CONCAT(
     group_item.AnnotationPropertyTypeCodeSequence[SAFE_OFFSET(0)].CodingSchemeDesignator, ":",
     group_item.AnnotationPropertyTypeCodeSequence[SAFE_OFFSET(0)].CodeValue
   ) AS AnnotationPropertyType_code,
 
   # description:
-  # human-readable meaning of the annotation property type
+  # human-readable meaning of the annotation property type from DICOM AnnotationPropertyTypeCodeSequence
   group_item.AnnotationPropertyTypeCodeSequence[SAFE_OFFSET(0)].CodeMeaning AS AnnotationPropertyType_CodeMeaning,
 
   # description:
-  # name of the algorithm used to generate annotations (when AnnotationGroupGenerationType is AUTOMATIC)
+  # name of the algorithm from DICOM AlgorithmName attribute in AnnotationGroupAlgorithmIdentificationSequence
+  # (when AnnotationGroupGenerationType is AUTOMATIC)
   group_item.AnnotationGroupAlgorithmIdentificationSequence[SAFE_OFFSET(0)].AlgorithmName AS AlgorithmName,
 
   # description:
