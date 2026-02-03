@@ -43,7 +43,7 @@ SELECT
   another_column AS alias_name,
 
 FROM
-  `bigquery-public-data.idc_current.dicom_metadata`
+  `bigquery-public-data.idc_v23.dicom_metadata`
 WHERE
   ...
 ```
@@ -59,7 +59,7 @@ WHERE
 
 ### Example
 
-See `assets/seg_index.sql` for a complete example showing:
+See `assets/seg_index.sql` or `assets/ann_index.sql` for complete examples showing:
 
 - Complex CTEs (Common Table Expressions)
 - Nested UNNEST operations
@@ -80,6 +80,8 @@ _ALL_INDICES = [
     "sm_index",
     "sm_instance_index",
     "seg_index",
+    "ann_index",
+    "ann_group_index",
     "your_new_index",  # <-- Add your index here
 ]
 ```
@@ -101,6 +103,8 @@ PARQUET_EXCLUDE_LIST: ClassVar[set[str]] = {
     "sm_instance_index.parquet",
     "clinical_index.parquet",
     "seg_index.parquet",
+    "ann_index.parquet",
+    "ann_group_index.parquet",
     "your_new_index.parquet",  # <-- Add if large
 }
 ```
@@ -163,10 +167,10 @@ Brief explanation of the data source and any dependencies.
 
 ### BigQuery Table References
 
-Use `idc_current` for the latest data:
+Use versioned datasets (e.g., `idc_v23`) for reproducibility:
 
 ```sql
-FROM `bigquery-public-data.idc_current.dicom_metadata`
+FROM `bigquery-public-data.idc_v23.dicom_metadata`
 ```
 
 ### Safe Array Access
