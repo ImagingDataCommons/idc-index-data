@@ -10,7 +10,6 @@ WITH
     SELECT
       SOPInstanceUID,
       SeriesInstanceUID,
-      collection_id,
       AnnotationCoordinateType,
       AnnotationGroupSequence,
       ReferencedSeriesSequence,
@@ -41,12 +40,8 @@ SELECT
   ann_instances.SOPInstanceUID,
 
   # description:
-  # DICOM SeriesInstanceUID for joining with ann_index
+  # DICOM SeriesInstanceUID for joining with ann_index and idc_index
   ann_instances.SeriesInstanceUID,
-
-  # description:
-  # unique identifier of the IDC collection
-  ann_instances.collection_id,
 
   # description:
   # sequential number identifying this annotation group as defined in DICOM AnnotationGroupNumber attribute
@@ -124,7 +119,6 @@ LEFT JOIN
 GROUP BY
   ann_instances.SOPInstanceUID,
   ann_instances.SeriesInstanceUID,
-  ann_instances.collection_id,
   group_item.AnnotationGroupNumber,
   group_item.AnnotationGroupUID,
   group_item.AnnotationGroupLabel,

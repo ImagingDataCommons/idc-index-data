@@ -12,7 +12,6 @@ WITH
       SeriesInstanceUID,
       StudyInstanceUID,
       SOPInstanceUID,
-      collection_id,
       AnnotationCoordinateType,
       ContentLabel,
       ContentDescription,
@@ -90,10 +89,6 @@ SELECT
   ann_base.SeriesInstanceUID,
 
   # description:
-  # unique identifier of the IDC collection containing this annotation series
-  ANY_VALUE(ann_base.collection_id) AS collection_id,
-
-  # description:
   # coordinate type of the annotations (2D or 3D) as defined in DICOM AnnotationCoordinateType attribute
   ANY_VALUE(ann_base.AnnotationCoordinateType) AS AnnotationCoordinateType,
 
@@ -146,18 +141,7 @@ SELECT
 
   # description:
   # SeriesInstanceUID of the referenced image series that the annotations apply to
-  ANY_VALUE(referenced_series.referenced_SeriesInstanceUID) AS referenced_SeriesInstanceUID,
-
-  # description:
-  # URL to view the annotation series with its referenced images in the IDC OHIF viewer
-  ANY_VALUE(CONCAT(
-    "https://viewer.imaging.datacommons.cancer.gov/viewer/",
-    ann_base.StudyInstanceUID,
-    "?seriesInstanceUID=",
-    ann_base.SeriesInstanceUID,
-    ",",
-    referenced_series.referenced_SeriesInstanceUID
-  )) AS viewer_url
+  ANY_VALUE(referenced_series.referenced_SeriesInstanceUID) AS referenced_SeriesInstanceUID
 
 FROM
   ann_base
