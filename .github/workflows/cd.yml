@@ -52,6 +52,22 @@ jobs:
         env:
           GCP_PROJECT: ${{ env.GCP_PROJECT }}
 
+      - name: Report generated file sizes
+        run: |
+          echo "## Generated Index File Sizes" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          for f in release_artifacts/*.parquet; do
+            size=$(ls -lh "$f" | awk '{print $5}')
+            name=$(basename "$f")
+            echo "| $name | $size |" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Total" >> $GITHUB_STEP_SUMMARY
+          du -sh release_artifacts/*.parquet | awk '{print "Total parquet size: " $1}'
+          du -sh release_artifacts/*.parquet | awk '{print "Total parquet size: " $1}' >> $GITHUB_STEP_SUMMARY
+
       - name: Upload index artifacts
         uses: actions/upload-artifact@v4
         with:
