@@ -17,14 +17,6 @@ SELECT
   ann.AnnotationCoordinateType,
 
   # description:
-  # content label as defined in DICOM ContentLabel attribute
-  ann.ContentLabel,
-
-  # description:
-  # content description as defined in DICOM ContentDescription attribute
-  ann.ContentDescription,
-
-  # description:
   # SeriesInstanceUID of the referenced image series that the annotations apply to
   ReferencedSeriesSequence[SAFE_OFFSET(0)].SeriesInstanceUID AS referenced_SeriesInstanceUID
 
