@@ -91,6 +91,7 @@ _ALL_INDICES = [
     "seg_index",
     "ann_index",
     "ann_group_index",
+    "contrast_index",
 ]
 
 INDEX_METADATA: dict[str, dict[str, Path | dict[str, object] | str | None]] = {}

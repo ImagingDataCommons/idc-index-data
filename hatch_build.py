@@ -24,6 +24,7 @@ class IDCBuildHook(BuildHookInterface):
         "seg_index.parquet",
         "ann_index.parquet",
         "ann_group_index.parquet",
+        "contrast_index.parquet",
     }
 
     def _prune_excluded_parquet_files(self) -> None:
