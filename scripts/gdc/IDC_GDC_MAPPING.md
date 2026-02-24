@@ -93,3 +93,15 @@ trailing `A` in their IDC PatientID that GDC does not have:
 | `TCGA-AY-6386A` | `TCGA-AY-6386`   |
 
 These patients exist in GDC but are not matched due to the ID discrepancy.
+
+## Collection coverage analysis
+
+GDC has 91 projects. We cross-referenced all IDC collection names against
+all GDC project IDs and confirmed that the current SQL filters
+(`tcga%`, `%apollo%`, `%cptac%`, `%ccdi%`) cover every IDC collection that
+has a corresponding GDC project.
+
+The remaining ~120 IDC collections (e.g. `acrin_*`, `cmb_*`, `htan_*`,
+`nlst`, `rider_*`, `qin_*`, etc.) do not correspond to any GDC project.
+Other GDC programs (TARGET, MATCH, CGCI, CMI, MMRF, HCMI, BEATAML, FM-AD,
+WCDT, etc.) do not have imaging collections in IDC.
