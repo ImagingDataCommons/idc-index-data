@@ -101,9 +101,7 @@ def _fetch_remaining_pages(
 
     while offset < total:
         try:
-            data = _gdc_post(
-                filters, "submitter_id,case_id", page_size, offset
-            )
+            data = _gdc_post(filters, "submitter_id,case_id", page_size, offset)
             hits = data.get("hits", [])
             if not hits:
                 break
@@ -164,10 +162,7 @@ def check_patients_in_gdc_by_project(
             ],
         }
 
-        print(
-            f"    batch {i + 1}/{num_batches} "
-            f"(IDs {start + 1}-{end} of {total}) ..."
-        )
+        print(f"    batch {i + 1}/{num_batches} (IDs {start + 1}-{end} of {total}) ...")
 
         try:
             data = _gdc_post(filters, "submitter_id,case_id", len(batch))
@@ -203,11 +198,7 @@ def check_all_patients(
         lambda: defaultdict(list)
     )
 
-    pairs = (
-        studies_df[["collection_id", "PatientID"]]
-        .dropna()
-        .drop_duplicates()
-    )
+    pairs = studies_df[["collection_id", "PatientID"]].dropna().drop_duplicates()
     for _, row in pairs.iterrows():
         cid = row["collection_id"]
         pid = row["PatientID"]
@@ -227,9 +218,7 @@ def check_all_patients(
             f"{len(all_pids)} unique patients ..."
         )
 
-        sid_to_uuid = check_patients_in_gdc_by_project(
-            list(gdc_projects), all_pids
-        )
+        sid_to_uuid = check_patients_in_gdc_by_project(list(gdc_projects), all_pids)
 
         # Map found submitter_ids back to their (collection_id, PatientID) pairs.
         for cid, pids in collections.items():
@@ -269,8 +258,10 @@ def main() -> None:
         return
 
     n_patients = studies_df["PatientID"].nunique()
-    print(f"Checking {n_patients} unique PatientIDs against GDC API "
-          f"(scoped by project) ...")
+    print(
+        f"Checking {n_patients} unique PatientIDs against GDC API "
+        f"(scoped by project) ..."
+    )
 
     found_map = check_all_patients(studies_df)
 
@@ -284,9 +275,11 @@ def main() -> None:
     n_found = studies_df["in_gdc"].sum()
     n_total = len(studies_df)
     n_patients_found = len(found_map)
-    print(f"\nSummary:")
+    print("\nSummary:")
     print(f"  Studies: {n_found}/{n_total} rows have PatientID in GDC")
-    print(f"  Patients: {n_patients_found}/{n_patients} unique (collection, PatientID) pairs in GDC")
+    print(
+        f"  Patients: {n_patients_found}/{n_patients} unique (collection, PatientID) pairs in GDC"
+    )
 
     save_results(studies_df)
 
