@@ -173,7 +173,8 @@ jobs:
         uses: google-github-actions/upload-cloud-storage@v2
         with:
           path: release_artifacts
-          destination: idc-index-data-artifacts/${{ github.event.release.tag_name }}
+          destination:
+            idc-index-data-artifacts/${{ github.event.release.tag_name }}
 
       - name: Ensure bucket is publicly readable
         run: |
