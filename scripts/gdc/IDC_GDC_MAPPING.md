@@ -30,15 +30,15 @@ scoped by project:
 
 ### Output schema
 
-| Column             | Type    | Description                            |
-| ------------------ | ------- | -------------------------------------- |
-| `collection_id`    | string  | IDC collection (e.g. `tcga_brca`)      |
-| `PatientID`        | string  | Patient identifier                     |
-| `StudyInstanceUID` | string  | DICOM study UID                        |
-| `StudyDate`        | string  | DICOM study date                       |
-| `StudyDescription` | string  | DICOM study description                |
-| `study_type`       | string  | `M` (microscopy/SM) or `R` (radiology) |
-| `gdc_case_id`      | string  | GDC case UUID, or null if not found    |
+| Column             | Type   | Description                            |
+| ------------------ | ------ | -------------------------------------- |
+| `collection_id`    | string | IDC collection (e.g. `tcga_brca`)      |
+| `PatientID`        | string | Patient identifier                     |
+| `StudyInstanceUID` | string | DICOM study UID                        |
+| `StudyDate`        | string | DICOM study date                       |
+| `StudyDescription` | string | DICOM study description                |
+| `study_type`       | string | `M` (microscopy/SM) or `R` (radiology) |
+| `gdc_case_id`      | string | GDC case UUID, or null if not found    |
 
 ## Results (February 2025)
 

@@ -26,19 +26,19 @@ Storage bucket on each release.
 The package provides metadata for the following indices via the `INDEX_METADATA`
 dictionary:
 
-| Index | In PyPI package | Description |
-|-------|:-:|---|
-| `idc_index` | yes | Core IDC DICOM study-level index |
-| `prior_versions_index` | yes | Historical version tracking |
-| `collections_index` | yes | Collection-level metadata |
-| `analysis_results_index` | yes | Analysis results metadata |
-| `clinical_index` | - | Clinical data (large) |
-| `sm_index` | - | Slide microscopy index (large) |
-| `sm_instance_index` | - | Slide microscopy instance-level index (large) |
-| `seg_index` | - | Segmentation index |
-| `ann_index` | - | Annotation index |
-| `ann_group_index` | - | Annotation group index |
-| `contrast_index` | - | Contrast agent index |
+| Index                    | In PyPI package | Description                                   |
+| ------------------------ | :-------------: | --------------------------------------------- |
+| `idc_index`              |       yes       | Core IDC DICOM study-level index              |
+| `prior_versions_index`   |       yes       | Historical version tracking                   |
+| `collections_index`      |       yes       | Collection-level metadata                     |
+| `analysis_results_index` |       yes       | Analysis results metadata                     |
+| `clinical_index`         |        -        | Clinical data (large)                         |
+| `sm_index`               |        -        | Slide microscopy index (large)                |
+| `sm_instance_index`      |        -        | Slide microscopy instance-level index (large) |
+| `seg_index`              |        -        | Segmentation index                            |
+| `ann_index`              |        -        | Annotation index                              |
+| `ann_group_index`        |        -        | Annotation group index                        |
+| `contrast_index`         |        -        | Contrast agent index                          |
 
 Additionally, a `gdc_idc_mapping.parquet` file mapping IDC patients to the
 [Genomic Data Commons (GDC)](https://gdc.cancer.gov) is generated and published
@@ -47,8 +47,8 @@ alongside the index files (not included in the PyPI package).
 All index files (including supplementary ones) are available from:
 
 - **GitHub Releases**: attached as release assets
-- **Google Cloud Storage**: `gs://idc-index-data-artifacts/<version>/`
-  (publicly readable, e.g.
+- **Google Cloud Storage**: `gs://idc-index-data-artifacts/<version>/` (publicly
+  readable, e.g.
   `https://storage.googleapis.com/idc-index-data-artifacts/23.5.0/idc_index.parquet`)
 
 ## Usage
@@ -66,7 +66,7 @@ idc_index_data.PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH
 # Access unified metadata for all indices
 idc_index_data.INDEX_METADATA["idc_index"]["parquet_filepath"]
 idc_index_data.INDEX_METADATA["idc_index"]["schema"]  # pre-loaded dict
-idc_index_data.INDEX_METADATA["idc_index"]["sql"]      # pre-loaded string
+idc_index_data.INDEX_METADATA["idc_index"]["sql"]  # pre-loaded string
 ```
 
 ## Acknowledgment
