@@ -17,17 +17,35 @@ import duckdb
 import pandas as pd
 import requests
 from google.cloud import bigquery
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 # NOTE: Requires Python 3.10+ (tested on Python 3.10+).
 
 GDC_BASE = "https://api.gdc.cancer.gov/cases"
 BATCH_SIZE = 500
 SLEEP_BETWEEN_REQUESTS = 0.12
+REQUEST_TIMEOUT = 30  # seconds
 SQL_FILE = Path(__file__).parent / "idc_gdc_selection.sql"
 OUTPUT_PARQUET = "gdc_idc_mapping.parquet"
 
 # IDC CPTAC sub-collections map to these GDC umbrella projects.
 GDC_CPTAC_PROJECTS = ["CPTAC-2", "CPTAC-3"]
+
+
+def _create_session() -> requests.Session:
+    """Create a requests session with retry logic for transient errors."""
+    session = requests.Session()
+    retry = Retry(
+        total=3,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+    )
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+    return session
+
+
+_session = _create_session()
 
 
 def idc_collection_to_gdc_projects(collection_id: str) -> list[str]:
@@ -68,10 +86,11 @@ def _gdc_post(filters: dict, fields: str, size: int, offset: int = 0) -> dict:
         "size": size,
         "from": offset,
     }
-    resp = requests.post(
+    resp = _session.post(
         GDC_BASE,
         json=body,
         headers={"Content-Type": "application/json", "Accept": "application/json"},
+        timeout=REQUEST_TIMEOUT,
     )
     resp.raise_for_status()
     return resp.json().get("data", {})
@@ -266,10 +285,9 @@ def main() -> None:
     found_map = check_all_patients(studies_df)
 
     # Add gdc_case_id column (UUID); presence of a value implies the patient is in GDC.
-    studies_df["gdc_case_id"] = [
-        found_map.get((row["collection_id"], row["PatientID"]))
-        for _, row in studies_df[["collection_id", "PatientID"]].iterrows()
-    ]
+    studies_df["gdc_case_id"] = studies_df.apply(
+        lambda row: found_map.get((row["collection_id"], row["PatientID"])), axis=1
+    )
 
     n_found = studies_df["gdc_case_id"].notna().sum()
     n_total = len(studies_df)
