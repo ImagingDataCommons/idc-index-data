@@ -2,7 +2,7 @@
 
 ## Approach
 
-### check_gdc_patients.py
+### gdc_parquet_generator.py
 
 Checks which IDC patients from GDC-related collections exist as cases in GDC.
 
@@ -14,7 +14,7 @@ Checks which IDC patients from GDC-related collections exist as cases in GDC.
    batch-queries the GDC API (`https://api.gdc.cancer.gov/cases`) using POST
    requests with `(project.project_id, submitter_id)` filters.
 
-3. Saves the results to `idc_gdc_patient_check.parquet` (ZSTD compressed).
+3. Saves the results to `gdc_idc_mapping.parquet` (ZSTD compressed).
 
 ### IDC collection to GDC project mapping
 
@@ -39,7 +39,6 @@ scoped by project:
 | `StudyDescription` | string  | DICOM study description                |
 | `study_type`       | string  | `M` (microscopy/SM) or `R` (radiology) |
 | `gdc_case_id`      | string  | GDC case UUID, or null if not found    |
-| `in_gdc`           | boolean | Whether the PatientID was found in GDC |
 
 ## Results (February 2025)
 
