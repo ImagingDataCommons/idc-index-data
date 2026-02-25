@@ -176,9 +176,17 @@ jobs:
           destination:
             idc-index-data-artifacts/${{ github.event.release.tag_name }}
 
+      - name: Update current/ folder with latest release
+        run: |
+          gcloud storage rm -r gs://idc-index-data-artifacts/current/ || true
+          gcloud storage cp -r \
+            gs://idc-index-data-artifacts/${{ github.event.release.tag_name }}/* \
+            gs://idc-index-data-artifacts/current/
+
       - name: Ensure bucket is publicly readable
         run: |
-          gsutil iam ch allUsers:objectViewer gs://idc-index-data-artifacts
+          gcloud storage buckets add-iam-policy-binding gs://idc-index-data-artifacts \
+            --member=allUsers --role=roles/storage.objectViewer
 
       - name: Ensure CORS policy is set
         run: |
@@ -195,7 +203,7 @@ jobs:
             }
           ]
           CORS
-          gsutil cors set /tmp/cors.json gs://idc-index-data-artifacts
+          gcloud storage buckets update gs://idc-index-data-artifacts --cors-file=/tmp/cors.json
 
   publish:
     needs: [dist]
