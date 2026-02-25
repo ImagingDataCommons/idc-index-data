@@ -504,6 +504,6 @@ if __name__ == "__main__":
         version = IDCIndexDataManager(
             args.project
         ).retrieve_latest_idc_release_version()
-        print(f"{version}")  # noqa: T201
+        print(f"{version}")
     else:
         parser.print_help()
