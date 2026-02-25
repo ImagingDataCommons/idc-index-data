@@ -175,6 +175,27 @@ jobs:
           path: release_artifacts
           destination: idc-index-data-artifacts/${{ github.event.release.tag_name }}
 
+      - name: Ensure bucket is publicly readable
+        run: |
+          gsutil iam ch allUsers:objectViewer gs://idc-index-data-artifacts
+
+      - name: Ensure CORS policy is set
+        run: |
+          cat > /tmp/cors.json << 'CORS'
+          [
+            {
+              "origin": [
+                "https://localhost.gdc.cancer.gov:3010",
+                "https://portal.gdc.cancer.gov"
+              ],
+              "method": ["GET", "HEAD"],
+              "responseHeader": ["Content-Type", "Content-Length", "Content-Range"],
+              "maxAgeSeconds": 3600
+            }
+          ]
+          CORS
+          gsutil cors set /tmp/cors.json gs://idc-index-data-artifacts
+
   publish:
     needs: [dist]
     name: Publish to PyPI
