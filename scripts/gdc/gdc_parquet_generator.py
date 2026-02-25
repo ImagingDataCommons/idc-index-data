@@ -24,7 +24,7 @@ GDC_BASE = "https://api.gdc.cancer.gov/cases"
 BATCH_SIZE = 500
 SLEEP_BETWEEN_REQUESTS = 0.12
 SQL_FILE = Path(__file__).parent / "idc_gdc_selection.sql"
-OUTPUT_PARQUET = "idc_gdc_patient_check.parquet"
+OUTPUT_PARQUET = "gdc_idc_mapping.parquet"
 
 # IDC CPTAC sub-collections map to these GDC umbrella projects.
 GDC_CPTAC_PROJECTS = ["CPTAC-2", "CPTAC-3"]
