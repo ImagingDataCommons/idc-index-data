@@ -12,14 +12,62 @@
 
 ## About
 
-`idc-index-data` is a Python package providing the index to query and download
+`idc-index-data` is a Python package providing index files to query and download
 data hosted by the
 [NCI Imaging Data Commons (IDC)](https://imaging.datacommons.cancer.gov).
 
+The PyPI package bundles a core set of index files (Parquet, JSON schemas, SQL
+queries). Supplementary indices that are too large for PyPI distribution are
+published as release artifacts on GitHub and uploaded to a public Google Cloud
+Storage bucket on each release.
+
+## Index files
+
+The package provides metadata for the following indices via the `INDEX_METADATA`
+dictionary:
+
+| Index | In PyPI package | Description |
+|-------|:-:|---|
+| `idc_index` | yes | Core IDC DICOM study-level index |
+| `prior_versions_index` | yes | Historical version tracking |
+| `collections_index` | yes | Collection-level metadata |
+| `analysis_results_index` | yes | Analysis results metadata |
+| `clinical_index` | - | Clinical data (large) |
+| `sm_index` | - | Slide microscopy index (large) |
+| `sm_instance_index` | - | Slide microscopy instance-level index (large) |
+| `seg_index` | - | Segmentation index |
+| `ann_index` | - | Annotation index |
+| `ann_group_index` | - | Annotation group index |
+| `contrast_index` | - | Contrast agent index |
+
+Additionally, a `gdc_idc_mapping.parquet` file mapping IDC patients to the
+[Genomic Data Commons (GDC)](https://gdc.cancer.gov) is generated and published
+alongside the index files (not included in the PyPI package).
+
+All index files (including supplementary ones) are available from:
+
+- **GitHub Releases**: attached as release assets
+- **Google Cloud Storage**: `gs://idc-index-data-artifacts/<version>/`
+  (publicly readable, e.g.
+  `https://storage.googleapis.com/idc-index-data-artifacts/23.5.0/idc_index.parquet`)
+
 ## Usage
 
-This Python package bundles the `idc_index.csv.zip` archive and is intended to
-be used by the [idc-index](https://pypi.org/project/idc-index/) Python package.
+This package is intended to be used by the
+[idc-index](https://pypi.org/project/idc-index/) Python package.
+
+```python
+import idc_index_data
+
+# Access core index file paths
+idc_index_data.IDC_INDEX_PARQUET_FILEPATH
+idc_index_data.PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH
+
+# Access unified metadata for all indices
+idc_index_data.INDEX_METADATA["idc_index"]["parquet_filepath"]
+idc_index_data.INDEX_METADATA["idc_index"]["schema"]  # pre-loaded dict
+idc_index_data.INDEX_METADATA["idc_index"]["sql"]      # pre-loaded string
+```
 
 ## Acknowledgment
 
