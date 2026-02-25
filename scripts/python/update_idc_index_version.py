@@ -18,10 +18,10 @@ ROOT_DIR = Path(__file__).parent / "../.."
 @contextlib.contextmanager
 def _log(txt, verbose=True):
     if verbose:
-        print(txt)  # noqa: T201
+        print(txt)
     yield
     if verbose:
-        print(f"{txt} - done")  # noqa: T201
+        print(f"{txt} - done")
 
 
 def _update_file(filepath, regex, replacement):
@@ -124,7 +124,7 @@ def main():
             git tag -a {release}.0.0 -m "Update to IDC index {release}"
             gh pr create --fill --body "Created by update_idc_index_version.py"
             """
-        print(textwrap.dedent(msg.format(release=args.idc_index_version)))  # noqa: T201
+        print(textwrap.dedent(msg.format(release=args.idc_index_version)))
 
 
 if __name__ == "__main__":
