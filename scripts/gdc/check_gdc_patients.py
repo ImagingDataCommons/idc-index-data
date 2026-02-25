@@ -265,14 +265,13 @@ def main() -> None:
 
     found_map = check_all_patients(studies_df)
 
-    # Add gdc_case_id column (UUID) and in_gdc boolean.
+    # Add gdc_case_id column (UUID); presence of a value implies the patient is in GDC.
     studies_df["gdc_case_id"] = [
         found_map.get((row["collection_id"], row["PatientID"]))
         for _, row in studies_df[["collection_id", "PatientID"]].iterrows()
     ]
-    studies_df["in_gdc"] = studies_df["gdc_case_id"].notna()
 
-    n_found = studies_df["in_gdc"].sum()
+    n_found = studies_df["gdc_case_id"].notna().sum()
     n_total = len(studies_df)
     n_patients_found = len(found_map)
     print("\nSummary:")
