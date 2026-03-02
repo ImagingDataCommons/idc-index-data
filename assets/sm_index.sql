@@ -19,6 +19,7 @@ WITH
   temp_table AS (
   SELECT
     dicom_all.SeriesInstanceUID,
+    ANY_VALUE(ContainerIdentifier) AS ContainerIdentifier,
     ANY_VALUE(Modality) AS Modality,
     STRING_AGG(DISTINCT(collection_id),",") AS collection_id,
     ANY_VALUE(OpticalPathSequence[SAFE_OFFSET(0)].ObjectiveLensPower) AS ObjectiveLensPower,
@@ -89,6 +90,9 @@ SELECT
   # description:
   # DICOM SeriesInstanceUID identifier of the series
   temp_table.SeriesInstanceUID,
+  # description:
+  # identifier of the container (e.g., glass slide) holding the specimen from DICOM ContainerIdentifier attribute
+  ContainerIdentifier,
   -- Embedding Medium
   # description:
   # embedding medium CodeMeaning from DICOM SpecimenPreparationSequence in SpecimenDescriptionSequence
