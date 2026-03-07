@@ -60,20 +60,9 @@ jobs:
           GCP_PROJECT: ${{ env.GCP_PROJECT }}
 
       - name: Report generated index sizes
-        run: |
-          echo "## Generated Index Sizes" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Index | Rows | File Size |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|-----:|----------:|" >> $GITHUB_STEP_SUMMARY
-          for f in $(ls release_artifacts/*.parquet | sort); do
-            name=$(basename "$f" .parquet)
-            size=$(ls -lh "$f" | awk '{print $5}')
-            rows=$(python -c "import duckdb; print(f\"{duckdb.execute(\\\"SELECT COUNT(*) FROM read_parquet('$f')\\\").fetchone()[0]:,}\")")
-            echo "| $name | $rows | $size |" >> $GITHUB_STEP_SUMMARY
-          done
-          echo "" >> $GITHUB_STEP_SUMMARY
-          total=$(du -ch release_artifacts/*.parquet | tail -1 | awk '{print $1}')
-          echo "**Total parquet size: $total**" >> $GITHUB_STEP_SUMMARY
+        run:
+          python scripts/python/report_index_sizes.py release_artifacts >>
+          $GITHUB_STEP_SUMMARY
 
       - name: Upload index artifacts
         uses: actions/upload-artifact@v4
