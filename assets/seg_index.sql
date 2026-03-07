@@ -147,7 +147,25 @@ SELECT
   # description:
   # SeriesInstanceUID of the referenced image series that the segmentation applies to
   any_value(segmentations.segmented_SeriesInstanceUID)
-    AS segmented_SeriesInstanceUID
+    AS segmented_SeriesInstanceUID,
+  # description:
+  # Array of distinct CodeMeaning values from SegmentedPropertyCategoryCodeSequence across all segments
+  # in the series, representing the broad category of the segmented property as defined in DICOM PS3.3 C.8.20.2,
+  # e.g., ["Anatomical Structure"], ["Morphologically Altered Structure"]
+  ARRAY_AGG(DISTINCT SegmentedPropertyCategory.CodeMeaning IGNORE NULLS)
+    AS SegmentedPropertyCategory_CodeMeanings,
+  # description:
+  # Array of distinct CodeMeaning values from SegmentedPropertyTypeCodeSequence across all segments
+  # in the series, representing the specific type of the segmented property as defined in DICOM PS3.3 C.8.20.2,
+  # e.g., ["Liver", "Kidney", "Spleen"]
+  ARRAY_AGG(DISTINCT SegmentedPropertyType.CodeMeaning IGNORE NULLS)
+    AS SegmentedPropertyType_CodeMeanings,
+  # description:
+  # Array of distinct CodeMeaning values from AnatomicRegionSequence across all segments
+  # in the series, representing the anatomic location of the segmented structure as defined in DICOM PS3.3 C.8.20.2,
+  # e.g., ["Abdomen"], ["Thorax", "Head"]
+  ARRAY_AGG(DISTINCT AnatomicRegion.CodeMeaning IGNORE NULLS)
+    AS AnatomicRegion_CodeMeanings
 FROM segmentations
 GROUP BY SeriesInstanceUID
 ORDER BY SegmentationType DESC
