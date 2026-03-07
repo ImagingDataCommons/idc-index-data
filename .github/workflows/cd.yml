@@ -59,21 +59,21 @@ jobs:
         env:
           GCP_PROJECT: ${{ env.GCP_PROJECT }}
 
-      - name: Report generated file sizes
+      - name: Report generated index sizes
         run: |
-          echo "## Generated Index File Sizes" >> $GITHUB_STEP_SUMMARY
+          echo "## Generated Index Sizes" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
-          for f in release_artifacts/*.parquet; do
+          echo "| Index | Rows | File Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-----:|----------:|" >> $GITHUB_STEP_SUMMARY
+          for f in $(ls release_artifacts/*.parquet | sort); do
+            name=$(basename "$f" .parquet)
             size=$(ls -lh "$f" | awk '{print $5}')
-            name=$(basename "$f")
-            echo "| $name | $size |" >> $GITHUB_STEP_SUMMARY
+            rows=$(python -c "import duckdb; print(f\"{duckdb.execute(\\\"SELECT COUNT(*) FROM read_parquet('$f')\\\").fetchone()[0]:,}\")")
+            echo "| $name | $rows | $size |" >> $GITHUB_STEP_SUMMARY
           done
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Total" >> $GITHUB_STEP_SUMMARY
-          du -ch release_artifacts/*.parquet | tail -1 | awk '{print "Total parquet size: " $1}'
-          du -ch release_artifacts/*.parquet | tail -1 | awk '{print "Total parquet size: " $1}' >> $GITHUB_STEP_SUMMARY
+          total=$(du -ch release_artifacts/*.parquet | tail -1 | awk '{print $1}')
+          echo "**Total parquet size: $total**" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload index artifacts
         uses: actions/upload-artifact@v4
