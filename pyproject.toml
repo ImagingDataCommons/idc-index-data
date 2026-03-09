@@ -6,8 +6,6 @@ requires = [
   "google-cloud-bigquery",
   "pandas",
   "pyarrow",
-  "pygithub",
-  "requests"
 ]
 build-backend = "hatchling.build"
 
@@ -39,9 +37,7 @@ classifiers = [
   "Topic :: Scientific/Engineering",
   "Typing :: Typed",
 ]
-dependencies = [
-  "google-cloud-bigquery"
-]
+dependencies = []
 
 [project.optional-dependencies]
 test = [
