@@ -59,6 +59,12 @@ jobs:
         env:
           GCP_PROJECT: ${{ env.GCP_PROJECT }}
 
+      - name: Generate TCIA subset parquet
+        run: |
+          python scripts/tcia/tcia_parquet_generator.py \
+            release_artifacts/idc_index.parquet \
+            -o release_artifacts/tcia_idc_subset.parquet
+
       - name: Report generated index sizes
         run:
           python scripts/python/report_index_sizes.py release_artifacts >>
