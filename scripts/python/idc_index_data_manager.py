@@ -5,9 +5,12 @@ import logging
 import os
 import re
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pandas as pd
-from google.cloud import bigquery
+
+if TYPE_CHECKING:
+    from google.cloud import bigquery
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -18,6 +21,8 @@ class IDCIndexDataManager:
         """
         Initializes the IDCIndexDataManager using the Google Cloud Platform project ID.
         """
+        from google.cloud import bigquery  # noqa: PLC0415
+
         self.project_id = project_id
         self.client = bigquery.Client(project=project_id)
         logger.debug("IDCIndexDataManager initialized with project ID: %s", project_id)
