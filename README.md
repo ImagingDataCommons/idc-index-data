@@ -58,29 +58,29 @@ All index files (including supplementary ones) are available from:
 Artifacts are uploaded to the `idc-index-data-artifacts` bucket on each release.
 Two paths are maintained:
 
-| Path                                       | Description                                      |
-| ------------------------------------------ | ------------------------------------------------ |
-| `gs://idc-index-data-artifacts/<version>/` | Artifacts for a specific release (e.g. `23.5.0`) |
-| `gs://idc-index-data-artifacts/current/`   | Always points to the latest release              |
+| Path                                                         | Description                                      |
+| ------------------------------------------------------------ | ------------------------------------------------ |
+| `gs://idc-index-data-artifacts/<version>/release_artifacts/` | Artifacts for a specific release (e.g. `23.5.0`) |
+| `gs://idc-index-data-artifacts/current/release_artifacts/`   | Always points to the latest release              |
 
 Individual files can be accessed via HTTPS at:
 
 ```
-https://storage.googleapis.com/idc-index-data-artifacts/current/<filename>
+https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/<filename>
 ```
 
 For example:
 
-| File                      | URL                                                                                     |
-| ------------------------- | --------------------------------------------------------------------------------------- |
-| `idc_index.parquet`       | https://storage.googleapis.com/idc-index-data-artifacts/current/idc_index.parquet       |
-| `idc_index_schema.json`   | https://storage.googleapis.com/idc-index-data-artifacts/current/idc_index_schema.json   |
-| `idc_index.sql`           | https://storage.googleapis.com/idc-index-data-artifacts/current/idc_index.sql           |
-| `clinical_index.parquet`  | https://storage.googleapis.com/idc-index-data-artifacts/current/clinical_index.parquet  |
-| `sm_index.parquet`        | https://storage.googleapis.com/idc-index-data-artifacts/current/sm_index.parquet        |
-| `seg_index.parquet`       | https://storage.googleapis.com/idc-index-data-artifacts/current/seg_index.parquet       |
-| `gdc_idc_mapping.parquet` | https://storage.googleapis.com/idc-index-data-artifacts/current/gdc_idc_mapping.parquet |
-| `tcia_idc_subset.parquet` | https://storage.googleapis.com/idc-index-data-artifacts/current/tcia_idc_subset.parquet |
+| File                      | URL                                                                                                       |
+| ------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `idc_index.parquet`       | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/idc_index.parquet       |
+| `idc_index_schema.json`   | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/idc_index_schema.json   |
+| `idc_index.sql`           | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/idc_index.sql           |
+| `clinical_index.parquet`  | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/clinical_index.parquet  |
+| `sm_index.parquet`        | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/sm_index.parquet        |
+| `seg_index.parquet`       | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/seg_index.parquet       |
+| `gdc_idc_mapping.parquet` | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/gdc_idc_mapping.parquet |
+| `tcia_idc_subset.parquet` | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/tcia_idc_subset.parquet |
 
 Replace `current` with a specific version tag (e.g. `23.5.0`) to pin to a
 particular release.
