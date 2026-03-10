@@ -40,16 +40,50 @@ dictionary:
 | `ann_group_index`        |        -        | Annotation group index                        |
 | `contrast_index`         |        -        | Contrast agent index                          |
 
-Additionally, a `gdc_idc_mapping.parquet` file mapping IDC patients to the
-[Genomic Data Commons (GDC)](https://gdc.cancer.gov) is generated and published
-alongside the index files (not included in the PyPI package).
+Additionally, the following supplementary parquet files are generated and
+published alongside the index files (not included in the PyPI package):
+
+| File                      | Description                                                                            |
+| ------------------------- | -------------------------------------------------------------------------------------- |
+| `gdc_idc_mapping.parquet` | Mapping of IDC patients to [GDC](https://gdc.cancer.gov) cases                         |
+| `tcia_idc_subset.parquet` | Subset of IDC index columns for [TCIA](https://www.cancerimagingarchive.net) workflows |
 
 All index files (including supplementary ones) are available from:
 
 - **GitHub Releases**: attached as release assets
-- **Google Cloud Storage**: `gs://idc-index-data-artifacts/<version>/` (publicly
-  readable, e.g.
-  `https://storage.googleapis.com/idc-index-data-artifacts/23.5.0/idc_index.parquet`)
+- **Google Cloud Storage**: publicly readable via HTTPS
+
+### Google Cloud Storage artifacts
+
+Artifacts are uploaded to the `idc-index-data-artifacts` bucket on each release.
+Two paths are maintained:
+
+| Path                                                         | Description                                      |
+| ------------------------------------------------------------ | ------------------------------------------------ |
+| `gs://idc-index-data-artifacts/<version>/release_artifacts/` | Artifacts for a specific release (e.g. `23.5.0`) |
+| `gs://idc-index-data-artifacts/current/release_artifacts/`   | Always points to the latest release              |
+
+Individual files can be accessed via HTTPS at:
+
+```
+https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/<filename>
+```
+
+For example:
+
+| File                      | URL                                                                                                       |
+| ------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `idc_index.parquet`       | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/idc_index.parquet       |
+| `idc_index_schema.json`   | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/idc_index_schema.json   |
+| `idc_index.sql`           | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/idc_index.sql           |
+| `clinical_index.parquet`  | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/clinical_index.parquet  |
+| `sm_index.parquet`        | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/sm_index.parquet        |
+| `seg_index.parquet`       | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/seg_index.parquet       |
+| `gdc_idc_mapping.parquet` | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/gdc_idc_mapping.parquet |
+| `tcia_idc_subset.parquet` | https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/tcia_idc_subset.parquet |
+
+Replace `current` with a specific version tag (e.g. `23.5.0`) to pin to a
+particular release.
 
 ## Usage
 
