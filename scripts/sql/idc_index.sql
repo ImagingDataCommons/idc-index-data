@@ -81,7 +81,7 @@ SELECT
   ANY_VALUE(CONCAT(series_aws_url,"*")) AS series_aws_url,
   # description:
   # total size of the series in megabytes
-  ROUND(SUM(SAFE_CAST(instance_size AS float64))/1000000, 2) AS series_size_MB,
+  SUM(SAFE_CAST(instance_size AS float64))/1000000. AS series_size_MB,
 FROM
   `bigquery-public-data.idc_v23.dicom_all` AS dicom_all
 JOIN
