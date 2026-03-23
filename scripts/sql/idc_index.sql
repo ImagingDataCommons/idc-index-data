@@ -48,6 +48,15 @@ SELECT
   # acquisition modality (DICOM attribute)
   ANY_VALUE(Modality) AS Modality,
   # description:
+  # SOP Class UID identifying the type of DICOM object (e.g., CT Image Storage,
+  # Segmentation Storage); more specific than Modality for distinguishing object types
+  # (DICOM attribute)
+  ANY_VALUE(SOPClassUID) AS SOPClassUID,
+  # description:
+  # Transfer Syntax UID identifying the encoding of the stored instances (e.g.,
+  # Explicit VR Little Endian, JPEG 2000, HTJ2K) (DICOM attribute)
+  ANY_VALUE(TransferSyntaxUID) AS TransferSyntaxUID,
+  # description:
   # manufacturer of the equipment that produced the series (DICOM attribute)
   ANY_VALUE(Manufacturer) AS Manufacturer,
   # description:
