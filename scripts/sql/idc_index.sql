@@ -53,10 +53,80 @@ SELECT
   # (DICOM attribute)
   ANY_VALUE(SOPClassUID) AS SOPClassUID,
   # description:
+  # human-readable name of the SOP Class (e.g., "CT Image Storage",
+  # "Segmentation Storage"); derived from SOPClassUID
+  ANY_VALUE(CASE SOPClassUID
+    WHEN "1.2.840.10008.5.1.4.1.1.1" THEN "Computed Radiography Image Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.1.1" THEN "Digital X-Ray Image Storage - For Presentation"
+    WHEN "1.2.840.10008.5.1.4.1.1.1.1.1" THEN "Digital X-Ray Image Storage - For Processing"
+    WHEN "1.2.840.10008.5.1.4.1.1.1.2" THEN "Digital Mammography X-Ray Image Storage - For Presentation"
+    WHEN "1.2.840.10008.5.1.4.1.1.1.2.1" THEN "Digital Mammography X-Ray Image Storage - For Processing"
+    WHEN "1.2.840.10008.5.1.4.1.1.104.3" THEN "Encapsulated STL Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.11.1" THEN "Grayscale Softcopy Presentation State Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.11.8" THEN "Advanced Blending Presentation State Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.12.1" THEN "X-Ray Angiographic Image Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.12.2" THEN "X-Ray Radiofluoroscopic Image Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.128" THEN "Positron Emission Tomography Image Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.13.1.3" THEN "Breast Tomosynthesis Image Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.13.1.4" THEN "Breast Projection X-Ray Image Storage - For Presentation"
+    WHEN "1.2.840.10008.5.1.4.1.1.13.1.5" THEN "Breast Projection X-Ray Image Storage - For Processing"
+    WHEN "1.2.840.10008.5.1.4.1.1.2" THEN "CT Image Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.20" THEN "Nuclear Medicine Image Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.3.1" THEN "Ultrasound Multi-frame Image Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.30" THEN "Parametric Map Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.4" THEN "MR Image Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.481.2" THEN "RT Dose Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.481.3" THEN "RT Structure Set Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.481.5" THEN "RT Plan Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.6.1" THEN "Ultrasound Image Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.66" THEN "Raw Data Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.66.1" THEN "Spatial Registration Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.66.4" THEN "Segmentation Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.67" THEN "Real World Value Mapping Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.7" THEN "Secondary Capture Image Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.7.2" THEN "Multi-frame Grayscale Byte Secondary Capture Image Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.77.1.6" THEN "VL Whole Slide Microscopy Image Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.88.22" THEN "Enhanced SR Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.88.33" THEN "Comprehensive SR Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.88.34" THEN "Comprehensive 3D SR Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.88.59" THEN "Key Object Selection Document Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.88.67" THEN "X-Ray Radiation Dose SR Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.88.71" THEN "Acquisition Context SR Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.91.1" THEN "Microscopy Bulk Simple Annotations Storage"
+    ELSE ERROR(CONCAT("Unmapped SOPClassUID: ", SOPClassUID, ". Please add a mapping."))
+  END) AS sop_class_name,
+  # description:
   # Transfer Syntax UID identifying the encoding of the stored instances (e.g.,
   # Explicit VR Little Endian, JPEG 2000, HTJ2K); comma-separated when a series
   # contains instances with different encodings, which is common for SM (DICOM attribute)
   STRING_AGG(DISTINCT TransferSyntaxUID, "," ORDER BY TransferSyntaxUID) AS TransferSyntaxUID,
+  # description:
+  # human-readable name of the Transfer Syntax (e.g., "JPEG 2000",
+  # "Explicit VR Little Endian"); comma-separated when a series contains
+  # instances with different encodings; derived from TransferSyntaxUID
+  STRING_AGG(DISTINCT CASE TransferSyntaxUID
+    WHEN "1.2.840.10008.1.2" THEN "Implicit VR Little Endian"
+    WHEN "1.2.840.10008.1.2.1" THEN "Explicit VR Little Endian"
+    WHEN "1.2.840.10008.1.2.2" THEN "Explicit VR Big Endian"
+    WHEN "1.2.840.10008.1.2.4.50" THEN "JPEG Baseline"
+    WHEN "1.2.840.10008.1.2.4.51" THEN "JPEG Extended"
+    WHEN "1.2.840.10008.1.2.4.70" THEN "JPEG Lossless"
+    WHEN "1.2.840.10008.1.2.4.80" THEN "JPEG-LS Lossless"
+    WHEN "1.2.840.10008.1.2.4.90" THEN "JPEG 2000 Lossless"
+    WHEN "1.2.840.10008.1.2.4.91" THEN "JPEG 2000"
+    ELSE ERROR(CONCAT("Unmapped TransferSyntaxUID: ", TransferSyntaxUID, ". Please add a mapping."))
+  END, "," ORDER BY CASE TransferSyntaxUID
+    WHEN "1.2.840.10008.1.2" THEN "Implicit VR Little Endian"
+    WHEN "1.2.840.10008.1.2.1" THEN "Explicit VR Little Endian"
+    WHEN "1.2.840.10008.1.2.2" THEN "Explicit VR Big Endian"
+    WHEN "1.2.840.10008.1.2.4.50" THEN "JPEG Baseline"
+    WHEN "1.2.840.10008.1.2.4.51" THEN "JPEG Extended"
+    WHEN "1.2.840.10008.1.2.4.70" THEN "JPEG Lossless"
+    WHEN "1.2.840.10008.1.2.4.80" THEN "JPEG-LS Lossless"
+    WHEN "1.2.840.10008.1.2.4.90" THEN "JPEG 2000 Lossless"
+    WHEN "1.2.840.10008.1.2.4.91" THEN "JPEG 2000"
+    ELSE ERROR(CONCAT("Unmapped TransferSyntaxUID: ", TransferSyntaxUID, ". Please add a mapping."))
+  END) AS transfer_syntax_name,
   # description:
   # manufacturer of the equipment that produced the series (DICOM attribute)
   ANY_VALUE(Manufacturer) AS Manufacturer,
