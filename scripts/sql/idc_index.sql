@@ -54,8 +54,9 @@ SELECT
   ANY_VALUE(SOPClassUID) AS SOPClassUID,
   # description:
   # Transfer Syntax UID identifying the encoding of the stored instances (e.g.,
-  # Explicit VR Little Endian, JPEG 2000, HTJ2K) (DICOM attribute)
-  ANY_VALUE(TransferSyntaxUID) AS TransferSyntaxUID,
+  # Explicit VR Little Endian, JPEG 2000, HTJ2K); comma-separated when a series
+  # contains instances with different encodings, which is common for SM (DICOM attribute)
+  STRING_AGG(DISTINCT TransferSyntaxUID, "," ORDER BY TransferSyntaxUID) AS TransferSyntaxUID,
   # description:
   # manufacturer of the equipment that produced the series (DICOM attribute)
   ANY_VALUE(Manufacturer) AS Manufacturer,
