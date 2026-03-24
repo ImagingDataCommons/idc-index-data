@@ -3,12 +3,15 @@
 # table-description:
 # This table contains one row per DICOM series from IDC
 # for single-frame CT, MR, and PT SOP classes, with boolean
-# columns indicating whether each geometric consistency check
-# passes. The checks validate that the series represents a
-# well-formed 3D volume (consistent orientation, spacing,
-# dimensions, and slice positions). Oblique-aware: uses
-# projection-based slice position computation, which handles
-# gantry-tilted CT, oblique MR, and axial PET uniformly.
+# columns characterizing the geometric properties of each series.
+# The checks determine whether the series forms a regularly-spaced
+# rectilinear 3D volume (consistent orientation, spacing, dimensions,
+# and slice positions). Series that do not pass all checks may still
+# be usable with additional processing such as resampling or
+# acquisition geometry correction (e.g., for variable-spacing or
+# gantry-tilted acquisitions). Oblique-aware: uses projection-based
+# slice position computation, which handles gantry-tilted CT, oblique
+# MR, and axial PET uniformly.
 
 # To use a specific IDC version instead of idc_current, replace
 # `bigquery-public-data.idc_current.dicom_all` with e.g. `bigquery-public-data.idc_v18.dicom_all`
@@ -162,9 +165,10 @@ SELECT
   # (within sliceIntervalTolerance)
   uniform_slice_spacing,
   # description:
-  # TRUE if all individual checks pass, indicating the series forms a valid 3D volume
+  # TRUE if all individual checks pass, indicating the series forms a regularly-spaced
+  # rectilinear 3D volume that can be loaded directly into a 3D array without resampling
   single_orientation AND orthogonal_orientation AND unique_slice_positions
     AND consistent_in_plane_row AND consistent_in_plane_col AND consistent_pixel_spacing
-    AND consistent_image_dimensions AND uniform_slice_spacing AS valid_3d_volume
+    AND consistent_image_dimensions AND uniform_slice_spacing AS regularly_spaced_3d_volume
 FROM geometryChecks
-ORDER BY valid_3d_volume DESC, SeriesInstanceUID
+ORDER BY regularly_spaced_3d_volume DESC, SeriesInstanceUID
