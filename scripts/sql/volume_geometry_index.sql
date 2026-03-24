@@ -12,6 +12,60 @@
 # gantry-tilted acquisitions). Oblique-aware: uses projection-based
 # slice position computation, which handles gantry-tilted CT, oblique
 # MR, and axial PET uniformly.
+#
+# Approach overview:
+#
+# Each DICOM instance (slice) carries its 3D position in patient space
+# (ImagePositionPatient, abbreviated IPP) and the orientation of its pixel
+# grid (ImageOrientationPatient, abbreviated IOP). IOP provides two unit
+# vectors — the row direction and the column direction — that define the
+# image plane. Their cross product gives the slice normal, i.e. the
+# direction perpendicular to the image plane.
+#
+# To check whether slices are regularly spaced along the volume axis, we
+# project each instance's IPP onto the slice normal. This yields a single
+# scalar "slice position" for each instance, regardless of whether the
+# acquisition is axial, oblique, or gantry-tilted. The expected spacing
+# is computed from the full span (first-to-last slice position divided by
+# N-1), and each adjacent pair is compared against it — an approach that
+# minimizes floating-point accumulation errors (see 3D Slicer reference
+# below).
+#
+# Similarly, projecting IPP onto the row and column directions gives
+# in-plane coordinates that should be constant across all slices if the
+# slices are properly aligned (no lateral shift between slices).
+#
+# Key SQL patterns used:
+#
+#   WITH ... AS (...) — Common Table Expression (CTE): defines a named
+#       temporary result set, like a subquery you can reference by name.
+#       The query is structured as a chain of CTEs that progressively
+#       transform the data.
+#
+#   SAFE_CAST(x AS FLOAT64) — converts x to a floating-point number,
+#       returning NULL instead of an error if the conversion fails.
+#
+#   ARRAY[OFFSET(i)] — accesses the i-th element of an array (0-based).
+#       SAFE_OFFSET returns NULL instead of an error for out-of-bounds.
+#
+#   LEAD(value) OVER (PARTITION BY key ORDER BY value) — a window function
+#       that returns the value from the next row within the same partition
+#       (group), ordered by the specified column. Used here to compute the
+#       distance between each slice and the next one. Returns NULL for the
+#       last row in each partition (no next row).
+#
+#   MAX/MIN(...) OVER (PARTITION BY key) — window aggregates that compute
+#       the max/min across all rows sharing the same key, without collapsing
+#       rows. Used to compute per-series statistics while keeping per-instance
+#       rows intact.
+#
+#   SAFE_DIVIDE(a, b) — returns a/b, or NULL if b is zero (avoids
+#       division-by-zero errors for single-instance series).
+#
+#   COUNT(DISTINCT x) — counts the number of unique values of x.
+#
+#   ANY_VALUE(x) — returns an arbitrary value of x from the group;
+#       used when all values in the group are expected to be the same.
 
 # To use a specific IDC version instead of idc_current, replace
 # `bigquery-public-data.idc_current.dicom_all` with e.g. `bigquery-public-data.idc_v18.dicom_all`
@@ -24,38 +78,66 @@ DECLARE inPlaneTolerance FLOAT64 DEFAULT 0.1;          # max in-plane position j
 DECLARE orientationTolerance FLOAT64 DEFAULT 0.01;     # cross-product magnitude deviation from 1.0
 
 WITH
-# CTE 1: Select per-instance data for single-frame CT, MR, PT series, excluding localizers
+
+# ---------------------------------------------------------------------------
+# CTE 1 — rawData: extract per-instance geometry from DICOM headers
+# ---------------------------------------------------------------------------
+# Selects one row per DICOM instance (slice) for single-frame CT, MR, and PT
+# series, excluding localizer/scout images and MIP reconstructions.
+# Extracts the position (IPP), orientation vectors (IOP row and column
+# direction cosines), pixel spacing, and matrix dimensions for each instance.
 rawData AS (
   SELECT
     SeriesInstanceUID,
     SOPInstanceUID,
     Modality,
-    # Extract all three components of ImagePositionPatient
+
+    # ImagePositionPatient (0020,0032): the x, y, z coordinates (in mm) of
+    # the upper-left corner of this slice in the patient coordinate system.
     SAFE_CAST(ImagePositionPatient[SAFE_OFFSET(0)] AS FLOAT64) AS ippX,
     SAFE_CAST(ImagePositionPatient[SAFE_OFFSET(1)] AS FLOAT64) AS ippY,
     SAFE_CAST(ImagePositionPatient[SAFE_OFFSET(2)] AS FLOAT64) AS ippZ,
-    # ImageOrientationPatient as string for consistency check
+
+    # ImageOrientationPatient (0020,0037) as a single string for equality
+    # comparison — if two instances have different IOP strings, the
+    # orientation changed within the series.
     ARRAY_TO_STRING(ImageOrientationPatient, '/') AS iop,
-    # Extract row direction cosines (first 3 elements)
+
+    # Row direction cosines: first 3 elements of IOP.
+    # This is the unit vector along the row (horizontal) direction of the
+    # image pixel grid in patient coordinates.
     (
       SELECT ARRAY_AGG(SAFE_CAST(part AS FLOAT64) ORDER BY index)
       FROM UNNEST(ImageOrientationPatient) part WITH OFFSET index
       WHERE index BETWEEN 0 AND 2
     ) AS x_vector,
-    # Extract column direction cosines (last 3 elements)
+
+    # Column direction cosines: last 3 elements of IOP.
+    # This is the unit vector along the column (vertical) direction of the
+    # image pixel grid in patient coordinates.
     (
       SELECT ARRAY_AGG(SAFE_CAST(part AS FLOAT64) ORDER BY index)
       FROM UNNEST(ImageOrientationPatient) part WITH OFFSET index
       WHERE index BETWEEN 3 AND 5
     ) AS y_vector,
+
+    # PixelSpacing (0028,0030) as a string for equality comparison
     ARRAY_TO_STRING(PixelSpacing, '/') AS pixelSpacing,
+
+    # Image matrix dimensions
     `Rows` AS pixelRows,
     `Columns` AS pixelColumns
+
   FROM
     `bigquery-public-data.idc_current.dicom_all` bid
   WHERE
-    # Single-frame SOP Classes: CT Image Storage, MR Image Storage, PET Image Storage
+    # Restrict to single-frame SOP Classes:
+    #   1.2.840.10008.5.1.4.1.1.2   = CT Image Storage
+    #   1.2.840.10008.5.1.4.1.1.4   = MR Image Storage
+    #   1.2.840.10008.5.1.4.1.1.128 = Positron Emission Tomography Image Storage
     SOPClassUID IN ('1.2.840.10008.5.1.4.1.1.2', '1.2.840.10008.5.1.4.1.1.4', '1.2.840.10008.5.1.4.1.1.128')
+    # Exclude localizer (scout) images and MIP reconstructions, which are
+    # not part of the volumetric acquisition
     AND SeriesInstanceUID NOT IN (
       SELECT SeriesInstanceUID
       FROM `bigquery-public-data.idc_current.dicom_all`, UNNEST(ImageType) image_type
@@ -63,7 +145,14 @@ rawData AS (
     )
 ),
 
-# CTE 2: Compute cross product of row and column orientation vectors
+# ---------------------------------------------------------------------------
+# CTE 2 — crossProduct: compute slice normal from orientation vectors
+# ---------------------------------------------------------------------------
+# The cross product of the row and column direction cosines gives the slice
+# normal vector. For a well-formed DICOM instance, the row and column vectors
+# are orthogonal unit vectors, so their cross product should also be a unit
+# vector (magnitude = 1.0). The cross product formula for vectors (a,b,c)
+# and (d,e,f) is: (bf-ce, cd-af, ae-bd).
 crossProduct AS (
   SELECT
     SOPInstanceUID,
@@ -76,27 +165,57 @@ crossProduct AS (
   FROM rawData
 ),
 
-# CTE 3: Project IPP onto slice normal for orientation-independent slice position
+# ---------------------------------------------------------------------------
+# CTE 3 — sliceProjection: compute per-instance geometric coordinates
+# ---------------------------------------------------------------------------
+# For each instance, computes:
+#   - crossProductMagnitude: length of the slice normal (should be ~1.0)
+#   - slicePosition: the instance's position projected onto the slice normal
+#     (a single scalar that represents "how far along the volume axis" this
+#     slice is — this works regardless of oblique orientation or gantry tilt)
+#   - inPlaneRow/Col: the instance's position projected onto the row/column
+#     directions (should be constant across all slices if they are aligned)
+#   - slice_interval: distance to the next slice along the volume axis
+#   - expected_spacing: the ideal uniform spacing computed from the full
+#     span divided by (N-1), which is more numerically stable than comparing
+#     adjacent pairs directly
 sliceProjection AS (
   SELECT
     r.*,
     cp.cp,
-    # Cross product magnitude (should be ~1 for orthogonal unit vectors)
+
+    # Magnitude of the cross product vector = sqrt(x² + y² + z²).
+    # Should be ~1.0 for orthogonal unit vectors.
     SQRT(cp.cp.x * cp.cp.x + cp.cp.y * cp.cp.y + cp.cp.z * cp.cp.z) AS crossProductMagnitude,
-    # Project IPP onto slice normal to get the true slice coordinate
+
+    # Dot product of IPP with the slice normal gives the scalar slice
+    # position along the volume axis.
     (r.ippX * cp.cp.x + r.ippY * cp.cp.y + r.ippZ * cp.cp.z) AS slicePosition,
-    # In-plane coordinates: project IPP onto row and column directions
-    # For a geometrically consistent series, these should be constant across all instances
+
+    # Dot product of IPP with the row direction. If all slices are aligned
+    # (no lateral shift), this value should be the same for every instance
+    # in the series.
     (r.ippX * r.x_vector[OFFSET(0)] + r.ippY * r.x_vector[OFFSET(1)] + r.ippZ * r.x_vector[OFFSET(2)]) AS inPlaneRow,
+
+    # Dot product of IPP with the column direction (same logic as above).
     (r.ippX * r.y_vector[OFFSET(0)] + r.ippY * r.y_vector[OFFSET(1)] + r.ippZ * r.y_vector[OFFSET(2)]) AS inPlaneCol,
-    # Adjacent slice interval via LEAD on projected position
+
+    # LEAD returns the slice position of the next instance when rows are
+    # sorted by slice position within each series. Subtracting the current
+    # position gives the spacing to the next slice. The last instance in
+    # each series gets NULL (no next slice).
     LEAD(r.ippX * cp.cp.x + r.ippY * cp.cp.y + r.ippZ * cp.cp.z)
       OVER (PARTITION BY r.SeriesInstanceUID
             ORDER BY (r.ippX * cp.cp.x + r.ippY * cp.cp.y + r.ippZ * cp.cp.z))
       - (r.ippX * cp.cp.x + r.ippY * cp.cp.y + r.ippZ * cp.cp.z) AS slice_interval,
-    # Expected spacing derived from the full span (first-to-last) to minimize
-    # numerical issues, per the approach used in 3D Slicer:
-    # https://github.com/Slicer/Slicer/commit/3328b81211cb2e9ae16a0b49097744171c8c71c0
+
+    # Expected uniform spacing = total span / (number of slices - 1).
+    # Derived from the first-to-last slice distance rather than any single
+    # adjacent pair, which minimizes floating-point accumulation errors.
+    # Reference: 3D Slicer acquisition geometry modeling
+    # (https://github.com/Slicer/Slicer/commit/3328b81211cb2e9ae16a0b49097744171c8c71c0)
+    # SAFE_DIVIDE returns NULL instead of error when dividing by zero
+    # (handles the edge case of a single-instance series where N-1 = 0).
     SAFE_DIVIDE(
       MAX(r.ippX * cp.cp.x + r.ippY * cp.cp.y + r.ippZ * cp.cp.z)
         OVER (PARTITION BY r.SeriesInstanceUID)
@@ -104,39 +223,78 @@ sliceProjection AS (
         OVER (PARTITION BY r.SeriesInstanceUID),
       COUNT(*) OVER (PARTITION BY r.SeriesInstanceUID) - 1
     ) AS expected_spacing
+
   FROM rawData r
   JOIN crossProduct cp USING (SOPInstanceUID, SeriesInstanceUID)
 ),
 
-# CTE 4: Aggregate per series and compute boolean check columns
+# ---------------------------------------------------------------------------
+# CTE 4 — geometryChecks: aggregate per-instance data into per-series checks
+# ---------------------------------------------------------------------------
+# Collapses all instances within each series into a single row with boolean
+# columns indicating whether each geometric property holds. Each check uses
+# aggregate functions (COUNT, MIN, MAX) across all instances in the series.
 geometryChecks AS (
   SELECT
     SeriesInstanceUID,
     ANY_VALUE(Modality) AS Modality,
-    # Individual check results
+
+    # single_orientation: TRUE if every instance has the same IOP string.
+    # Multiple orientations would mean the image plane rotated mid-series.
     COUNT(DISTINCT iop) = 1 AS single_orientation,
+
+    # consistent_pixel_spacing: TRUE if every instance has the same
+    # PixelSpacing. Different spacings would mean the in-plane resolution
+    # changed mid-series.
     COUNT(DISTINCT pixelSpacing) = 1 AS consistent_pixel_spacing,
+
+    # unique_slice_positions: TRUE if no two instances share the same
+    # projected slice position. Duplicate positions indicate overlapping
+    # slices (e.g., repeated acquisitions at the same location).
     COUNT(DISTINCT SOPInstanceUID) = COUNT(DISTINCT slicePosition) AS unique_slice_positions,
+
+    # consistent_image_dimensions: TRUE if all instances have the same
+    # Rows and Columns. Different dimensions would mean the pixel matrix
+    # size changed mid-series.
     COUNT(DISTINCT pixelRows) = 1 AND COUNT(DISTINCT pixelColumns) = 1 AS consistent_image_dimensions,
+
+    # orthogonal_orientation: TRUE if the cross product magnitude is ~1.0
+    # for all instances (within orientationTolerance). A magnitude far from
+    # 1.0 means the row and column direction cosines are not orthogonal
+    # unit vectors.
     MIN(crossProductMagnitude) BETWEEN (1 - orientationTolerance) AND (1 + orientationTolerance)
       AND MAX(crossProductMagnitude) BETWEEN (1 - orientationTolerance) AND (1 + orientationTolerance) AS orthogonal_orientation,
+
+    # consistent_in_plane_row: TRUE if the IPP projection onto the row
+    # direction varies by less than inPlaneTolerance across all instances.
+    # Large variation means slices are laterally shifted relative to each
+    # other (not stacked along a straight line).
     MAX(inPlaneRow) - MIN(inPlaneRow) < inPlaneTolerance AS consistent_in_plane_row,
+
+    # consistent_in_plane_col: same check for the column direction.
     MAX(inPlaneCol) - MIN(inPlaneCol) < inPlaneTolerance AS consistent_in_plane_col,
-    # Compare each adjacent interval against expected spacing derived from
-    # the full span; MAX of the absolute deviation must be within tolerance.
-    # slice_interval is NULL for the last slice (from LEAD), and MAX ignores NULLs.
+
+    # uniform_slice_spacing: TRUE if every adjacent slice interval is
+    # within sliceIntervalTolerance of the expected uniform spacing.
+    # The expected spacing is derived from the full first-to-last span
+    # (see CTE 3 above). MAX ignores NULLs, so the last slice (which has
+    # NULL slice_interval from LEAD) is automatically excluded.
     MAX(ABS(slice_interval - expected_spacing)) < sliceIntervalTolerance AS uniform_slice_spacing
+
   FROM sliceProjection
   GROUP BY
     SeriesInstanceUID
 )
 
+# ---------------------------------------------------------------------------
+# Final SELECT: output one row per series with all check results
+# ---------------------------------------------------------------------------
 SELECT
   # description:
   # unique identifier of the DICOM series
   SeriesInstanceUID,
   # description:
-  # TRUE if all instances share the same ImageOrientationPatient
+  # TRUE if all instances share the same ImageOrientationPatient (DICOM attribute)
   single_orientation,
   # description:
   # TRUE if the cross product of row and column orientation vectors has unit magnitude
@@ -155,10 +313,10 @@ SELECT
   # across all instances (within inPlaneTolerance)
   consistent_in_plane_col,
   # description:
-  # TRUE if all instances share the same PixelSpacing
+  # TRUE if all instances share the same PixelSpacing (DICOM attribute)
   consistent_pixel_spacing,
   # description:
-  # TRUE if all instances share the same Rows and Columns values
+  # TRUE if all instances share the same Rows and Columns values (DICOM attributes)
   consistent_image_dimensions,
   # description:
   # TRUE if the spacing between consecutive slices is constant
