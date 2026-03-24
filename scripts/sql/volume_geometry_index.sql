@@ -86,11 +86,21 @@ sliceProjection AS (
     # For a geometrically consistent series, these should be constant across all instances
     (r.ippX * r.x_vector[OFFSET(0)] + r.ippY * r.x_vector[OFFSET(1)] + r.ippZ * r.x_vector[OFFSET(2)]) AS inPlaneRow,
     (r.ippX * r.y_vector[OFFSET(0)] + r.ippY * r.y_vector[OFFSET(1)] + r.ippZ * r.y_vector[OFFSET(2)]) AS inPlaneCol,
-    # Slice interval via LEAD on projected position
+    # Adjacent slice interval via LEAD on projected position
     LEAD(r.ippX * cp.cp.x + r.ippY * cp.cp.y + r.ippZ * cp.cp.z)
       OVER (PARTITION BY r.SeriesInstanceUID
             ORDER BY (r.ippX * cp.cp.x + r.ippY * cp.cp.y + r.ippZ * cp.cp.z))
-      - (r.ippX * cp.cp.x + r.ippY * cp.cp.y + r.ippZ * cp.cp.z) AS slice_interval
+      - (r.ippX * cp.cp.x + r.ippY * cp.cp.y + r.ippZ * cp.cp.z) AS slice_interval,
+    # Expected spacing derived from the full span (first-to-last) to minimize
+    # numerical issues, per the approach used in 3D Slicer:
+    # https://github.com/Slicer/Slicer/commit/3328b81211cb2e9ae16a0b49097744171c8c71c0
+    SAFE_DIVIDE(
+      MAX(r.ippX * cp.cp.x + r.ippY * cp.cp.y + r.ippZ * cp.cp.z)
+        OVER (PARTITION BY r.SeriesInstanceUID)
+      - MIN(r.ippX * cp.cp.x + r.ippY * cp.cp.y + r.ippZ * cp.cp.z)
+        OVER (PARTITION BY r.SeriesInstanceUID),
+      COUNT(*) OVER (PARTITION BY r.SeriesInstanceUID) - 1
+    ) AS expected_spacing
   FROM rawData r
   JOIN crossProduct cp USING (SOPInstanceUID, SeriesInstanceUID)
 ),
@@ -109,7 +119,10 @@ geometryChecks AS (
       AND MAX(crossProductMagnitude) BETWEEN (1 - orientationTolerance) AND (1 + orientationTolerance) AS orthogonal_orientation,
     MAX(inPlaneRow) - MIN(inPlaneRow) < inPlaneTolerance AS consistent_in_plane_row,
     MAX(inPlaneCol) - MIN(inPlaneCol) < inPlaneTolerance AS consistent_in_plane_col,
-    MAX(slice_interval) - MIN(slice_interval) < sliceIntervalTolerance AS uniform_slice_spacing
+    # Compare each adjacent interval against expected spacing derived from
+    # the full span; MAX of the absolute deviation must be within tolerance.
+    # slice_interval is NULL for the last slice (from LEAD), and MAX ignores NULLs.
+    MAX(ABS(slice_interval - expected_spacing)) < sliceIntervalTolerance AS uniform_slice_spacing
   FROM sliceProjection
   GROUP BY
     SeriesInstanceUID
