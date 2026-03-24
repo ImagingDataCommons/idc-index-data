@@ -73,10 +73,13 @@
 # `bigquery-public-data.idc_current.dicom_all` with e.g. `bigquery-public-data.idc_v18.dicom_all`
 
 # Configurable parameters
-DECLARE relativeSliceTolerance FLOAT64 DEFAULT 0.02;   # max allowed variation in slice spacing as a fraction
-                                                       # of expected spacing (2%); relative tolerance scales
-                                                       # correctly for both human imaging (~1-5mm spacing)
-                                                       # and preclinical/small-animal imaging (~0.1mm spacing)
+DECLARE relativeSliceTolerance FLOAT64 DEFAULT 0.01;   # max allowed variation in slice spacing as a fraction
+                                                       # of expected spacing (1%); matches the default
+                                                       # _DEFAULT_SPACING_RELATIVE_TOLERANCE in highdicom
+                                                       # (https://github.com/ImagingDataCommons/highdicom/blob/9750a6f9/src/highdicom/spatial.py#L19);
+                                                       # relative tolerance scales correctly for both human
+                                                       # imaging (~1-5mm spacing) and preclinical/small-animal
+                                                       # imaging (~0.1mm spacing)
 DECLARE inPlaneTolerance FLOAT64 DEFAULT 0.1;          # max in-plane position jitter (mm)
 DECLARE orientationTolerance FLOAT64 DEFAULT 0.01;     # cross-product magnitude deviation from 1.0
 
