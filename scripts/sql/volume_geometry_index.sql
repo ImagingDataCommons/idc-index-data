@@ -29,7 +29,9 @@
 # is computed from the full span (first-to-last slice position divided by
 # N-1), and each adjacent pair is compared against it — an approach that
 # minimizes floating-point accumulation errors (see 3D Slicer reference
-# below).
+# below). The slice spacing tolerance is relative (a fraction of expected
+# spacing) rather than absolute, so it scales correctly for both human
+# imaging (~1-5mm spacing) and preclinical/small-animal imaging (~0.1mm).
 #
 # Similarly, projecting IPP onto the row and column directions gives
 # in-plane coordinates that should be constant across all slices if the
@@ -71,9 +73,10 @@
 # `bigquery-public-data.idc_current.dicom_all` with e.g. `bigquery-public-data.idc_v18.dicom_all`
 
 # Configurable parameters
-DECLARE sliceIntervalTolerance FLOAT64 DEFAULT 0.2;   # max allowed variation in slice spacing (mm);
-                                                       # matches kSliceTolerance in dcm2niix
-                                                       # (https://github.com/rordenlab/dcm2niix/blob/f6d7a001/console/nii_dicom_batch.cpp#L64)
+DECLARE relativeSliceTolerance FLOAT64 DEFAULT 0.02;   # max allowed variation in slice spacing as a fraction
+                                                       # of expected spacing (2%); relative tolerance scales
+                                                       # correctly for both human imaging (~1-5mm spacing)
+                                                       # and preclinical/small-animal imaging (~0.1mm spacing)
 DECLARE inPlaneTolerance FLOAT64 DEFAULT 0.1;          # max in-plane position jitter (mm)
 DECLARE orientationTolerance FLOAT64 DEFAULT 0.01;     # cross-product magnitude deviation from 1.0
 
@@ -275,11 +278,15 @@ geometryChecks AS (
     MAX(inPlaneCol) - MIN(inPlaneCol) < inPlaneTolerance AS consistent_in_plane_col,
 
     # uniform_slice_spacing: TRUE if every adjacent slice interval is
-    # within sliceIntervalTolerance of the expected uniform spacing.
+    # within relativeSliceTolerance of the expected uniform spacing.
+    # The tolerance is relative (a fraction of expected_spacing) so it
+    # scales correctly for both human imaging (~1-5mm spacing) and
+    # preclinical/small-animal imaging (~0.1mm spacing).
     # The expected spacing is derived from the full first-to-last span
     # (see CTE 3 above). MAX ignores NULLs, so the last slice (which has
     # NULL slice_interval from LEAD) is automatically excluded.
-    MAX(ABS(slice_interval - expected_spacing)) < sliceIntervalTolerance AS uniform_slice_spacing
+    MAX(ABS(slice_interval - expected_spacing))
+      < relativeSliceTolerance * ABS(ANY_VALUE(expected_spacing)) AS uniform_slice_spacing
 
   FROM sliceProjection
   GROUP BY
@@ -320,7 +327,7 @@ SELECT
   consistent_image_dimensions,
   # description:
   # TRUE if the spacing between consecutive slices is constant
-  # (within sliceIntervalTolerance)
+  # (within relativeSliceTolerance, a relative fraction of expected spacing)
   uniform_slice_spacing,
   # description:
   # TRUE if all individual checks pass, indicating the series forms a regularly-spaced
