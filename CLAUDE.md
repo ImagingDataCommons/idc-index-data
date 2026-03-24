@@ -6,6 +6,11 @@ When asked to remember something or when learning reusable guidelines, save them
 in this file — not in local memory. This repo is used across multiple machines,
 so only repo-level persistence is reliable.
 
+## Before committing
+
+Always run `pre-commit run --files <staged files>` before committing to catch
+formatting and linting issues. Fix any failures before creating the commit.
+
 ## Before starting any task
 
 Read the developer documentation in `docs/dev/` before exploring the codebase.
@@ -24,9 +29,12 @@ bq query --project_id=idc-sandbox-000 --use_legacy_sql=false < path/to/query.sql
 ## Column naming convention
 
 - DICOM attributes use PascalCase (e.g., `SeriesInstanceUID`, `PatientID`)
-- Derived/computed columns use snake_case (e.g., `sop_class_name`, `series_size_MB`, `valid_3d_volume`)
+- Derived/computed columns use snake_case (e.g., `sop_class_name`,
+  `series_size_MB`, `valid_3d_volume`)
 
 ## Index SQL locations
 
-- Core indexes: `scripts/sql/` (idc_index, collections_index, prior_versions_index, analysis_results_index)
-- Specialized indexes: `assets/` (clinical_index, sm_index, sm_instance_index, seg_index, etc.)
+- Core indexes: `scripts/sql/` (idc_index, collections_index,
+  prior_versions_index, analysis_results_index)
+- Specialized indexes: `assets/` (clinical_index, sm_index, sm_instance_index,
+  seg_index, etc.)
