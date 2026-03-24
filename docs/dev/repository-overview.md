@@ -35,6 +35,7 @@ imaging data available in the IDC. Each index:
 | `sm_index`               | Slide Microscopy series metadata           | One row per SM series             |     No     |
 | `sm_instance_index`      | Slide Microscopy instance metadata         | One row per SM instance           |     No     |
 | `seg_index`              | Segmentation series metadata               | One row per SEG series            |     No     |
+| `volume_geometry_index`  | 3D volume geometry validation checks       | One row per CT/MR/PT series       |     No     |
 
 **In Package** indicates whether the Parquet data file is bundled in the PyPI
 package. Indexes marked "No" have large Parquet files that are excluded to keep
