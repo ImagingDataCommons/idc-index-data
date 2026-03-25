@@ -289,7 +289,22 @@ geometryChecks AS (
     # (see CTE 3 above). MAX ignores NULLs, so the last slice (which has
     # NULL slice_interval from LEAD) is automatically excluded.
     MAX(ABS(slice_interval - expected_spacing))
-      < relativeSliceTolerance * ABS(ANY_VALUE(expected_spacing)) AS uniform_slice_spacing
+      < relativeSliceTolerance * ABS(ANY_VALUE(expected_spacing)) AS uniform_slice_spacing,
+
+    # obliquity_degrees: the angle (in degrees) between the slice normal
+    # and the nearest cardinal axis (X, Y, or Z in patient coordinates).
+    # 0° means pure axial, sagittal, or coronal. Values > 0° indicate
+    # oblique acquisition or gantry tilt (e.g., ~15° for tilted head CT).
+    # Computed as ACOS of the largest absolute component of the normalized
+    # slice normal vector — the largest component corresponds to the
+    # nearest cardinal axis.
+    ROUND(ACOS(
+      GREATEST(
+        ABS(ANY_VALUE(cp.x)),
+        ABS(ANY_VALUE(cp.y)),
+        ABS(ANY_VALUE(cp.z))
+      ) / ANY_VALUE(crossProductMagnitude)
+    ) * 180 / ACOS(-1), 2) AS obliquity_degrees
 
   FROM sliceProjection
   GROUP BY
@@ -332,6 +347,11 @@ SELECT
   # TRUE if the spacing between consecutive slices is constant
   # (within relativeSliceTolerance, a relative fraction of expected spacing)
   uniform_slice_spacing,
+  # description:
+  # angle in degrees between the slice normal and the nearest cardinal axis
+  # (X, Y, or Z in patient coordinates); 0 means pure axial, sagittal, or coronal;
+  # values above 0 indicate oblique acquisition or gantry tilt
+  obliquity_degrees,
   # description:
   # TRUE if all individual checks pass, indicating the series forms a regularly-spaced
   # rectilinear 3D volume that can be loaded directly into a 3D array without resampling
