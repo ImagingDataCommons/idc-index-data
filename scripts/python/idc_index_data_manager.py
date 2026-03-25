@@ -62,11 +62,8 @@ class IDCIndexDataManager:
                         if desc_text:
                             description_lines.append(desc_text)
                         j += 1
-                    elif next_stripped.startswith("#"):
-                        # Empty comment line, skip
-                        j += 1
                     else:
-                        # Non-comment line, stop collecting
+                        # Empty comment line or non-comment line, stop collecting
                         break
                 break
 
@@ -116,9 +113,14 @@ class IDCIndexDataManager:
                         if desc_text:
                             description_lines.append(desc_text)
                         i += 1
-                    elif next_stripped.startswith("#"):
-                        # Empty comment line, skip
-                        i += 1
+                    elif next_stripped == "#":
+                        msg = (
+                            "Empty comment line found inside a '# description:' block "
+                            f"at line {i + 1}. Column descriptions must not contain "
+                            "empty comment lines. Either remove the blank line or "
+                            "end the description before it."
+                        )
+                        raise ValueError(msg)
                     else:
                         # Non-comment line - this should contain the column definition
                         break
