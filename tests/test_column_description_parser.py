@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from scripts.python.idc_index_data_manager import IDCIndexDataManager
 
 
@@ -163,7 +164,7 @@ FROM table
         assert len(descriptions) == 0
 
     def test_empty_description_lines(self):
-        """Test handling of empty comment lines in descriptions."""
+        """Test that empty comment lines inside a description block raise an error."""
         sql_query = """
 SELECT
   # description:
@@ -173,12 +174,8 @@ SELECT
   collection_name,
 FROM table
 """
-        descriptions = IDCIndexDataManager.parse_column_descriptions(sql_query)
-        assert "collection_name" in descriptions
-        # Empty comment lines should be skipped
-        assert (
-            descriptions["collection_name"] == "name of the collection additional info"
-        )
+        with pytest.raises(ValueError, match="Empty comment line found inside"):
+            IDCIndexDataManager.parse_column_descriptions(sql_query)
 
     def test_nested_array_select_with_if(self):
         """Test parsing complex nested ARRAY/SELECT/IF statements."""
