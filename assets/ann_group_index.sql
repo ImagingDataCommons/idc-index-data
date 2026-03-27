@@ -69,3 +69,7 @@ CROSS JOIN
 WHERE
   # Microscopy Bulk Simple Annotations SOP Class UID - more reliable than Modality = "ANN"
   SOPClassUID = "1.2.840.10008.5.1.4.1.1.91.1"
+ORDER BY
+  AnnotationPropertyCategory_CodeMeaning,
+  AnnotationPropertyType_CodeMeaning,
+  AlgorithmName

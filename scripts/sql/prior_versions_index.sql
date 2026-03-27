@@ -45,6 +45,7 @@ SET union_all_query = (
   """,
   version, version, latest_idc_version),
     " UNION ALL "
+    ORDER BY version
   )
   FROM UNNEST(idc_versions) AS version
 );
@@ -95,6 +96,8 @@ where gcs_bucket not in ('idc-open-idc')
 
 GROUP BY
  1,2,3,4,5,6,7,8
+ORDER BY
+ collection_id, min_idc_version, Modality
   """,
   union_all_query
 );
