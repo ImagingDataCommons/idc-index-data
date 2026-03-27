@@ -29,12 +29,12 @@ WITH
     MAX(DISTINCT(`Rows`)) AS max_Rows,
     MIN(DISTINCT(SAFE_CAST(PixelSpacing[SAFE_OFFSET(0)] AS FLOAT64))) AS min_spacing_0,
     MIN(SAFE_CAST(SharedFunctionalGroupsSequence[SAFE_OFFSET(0)].PixelMeasuresSequence[SAFE_OFFSET(0)]. PixelSpacing[SAFE_OFFSET(0)] AS FLOAT64)) AS fg_min_spacing_0,
-    ARRAY_AGG(DISTINCT(CONCAT(SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].CodeValue, ":", SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].CodeMeaning)) IGNORE NULLS ORDER BY 1)[SAFE_OFFSET(0)] AS primaryAnatomicStructure_code_str,
-    ARRAY_AGG(DISTINCT(CONCAT(SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureModifierSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureModifierSequence[SAFE_OFFSET(0)].CodeValue, ":", SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureModifierSequence[SAFE_OFFSET(0)].CodeMeaning)) IGNORE NULLS ORDER BY 1)[SAFE_OFFSET(0)] AS primaryAnatomicStructureModifier_code_str,
+    ARRAY_AGG(DISTINCT(CONCAT(SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].CodeValue, ":", SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].CodeMeaning)) IGNORE NULLS ORDER BY CONCAT(SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].CodeValue, ":", SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].CodeMeaning))[SAFE_OFFSET(0)] AS primaryAnatomicStructure_code_str,
+    ARRAY_AGG(DISTINCT(CONCAT(SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureModifierSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureModifierSequence[SAFE_OFFSET(0)].CodeValue, ":", SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureModifierSequence[SAFE_OFFSET(0)].CodeMeaning)) IGNORE NULLS ORDER BY CONCAT(SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureModifierSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureModifierSequence[SAFE_OFFSET(0)].CodeValue, ":", SpecimenDescriptionSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureSequence[SAFE_OFFSET(0)].PrimaryAnatomicStructureModifierSequence[SAFE_OFFSET(0)].CodeMeaning))[SAFE_OFFSET(0)] AS primaryAnatomicStructureModifier_code_str,
 
-    ARRAY_AGG(DISTINCT(CONCAT(OpticalPathSequence[SAFE_OFFSET(0)].IlluminationTypeCodeSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", OpticalPathSequence[SAFE_OFFSET(0)].IlluminationTypeCodeSequence[SAFE_OFFSET(0)].CodeValue, ":", OpticalPathSequence[SAFE_OFFSET(0)].IlluminationTypeCodeSequence[SAFE_OFFSET(0)].CodeMeaning)) IGNORE NULLS ORDER BY 1)[SAFE_OFFSET(0)] AS illuminationType_code_str,
+    ARRAY_AGG(DISTINCT(CONCAT(OpticalPathSequence[SAFE_OFFSET(0)].IlluminationTypeCodeSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", OpticalPathSequence[SAFE_OFFSET(0)].IlluminationTypeCodeSequence[SAFE_OFFSET(0)].CodeValue, ":", OpticalPathSequence[SAFE_OFFSET(0)].IlluminationTypeCodeSequence[SAFE_OFFSET(0)].CodeMeaning)) IGNORE NULLS ORDER BY CONCAT(OpticalPathSequence[SAFE_OFFSET(0)].IlluminationTypeCodeSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", OpticalPathSequence[SAFE_OFFSET(0)].IlluminationTypeCodeSequence[SAFE_OFFSET(0)].CodeValue, ":", OpticalPathSequence[SAFE_OFFSET(0)].IlluminationTypeCodeSequence[SAFE_OFFSET(0)].CodeMeaning))[SAFE_OFFSET(0)] AS illuminationType_code_str,
 
-    ARRAY_AGG(DISTINCT(CONCAT(AdmittingDiagnosesCodeSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", AdmittingDiagnosesCodeSequence[SAFE_OFFSET(0)].CodeValue, ":", AdmittingDiagnosesCodeSequence[SAFE_OFFSET(0)].CodeMeaning)) IGNORE NULLS ORDER BY 1)[SAFE_OFFSET(0)] AS admittingDiagnosis_code_str
+    ARRAY_AGG(DISTINCT(CONCAT(AdmittingDiagnosesCodeSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", AdmittingDiagnosesCodeSequence[SAFE_OFFSET(0)].CodeValue, ":", AdmittingDiagnosesCodeSequence[SAFE_OFFSET(0)].CodeMeaning)) IGNORE NULLS ORDER BY CONCAT(AdmittingDiagnosesCodeSequence[SAFE_OFFSET(0)].CodingSchemeDesignator,":", AdmittingDiagnosesCodeSequence[SAFE_OFFSET(0)].CodeValue, ":", AdmittingDiagnosesCodeSequence[SAFE_OFFSET(0)].CodeMeaning))[SAFE_OFFSET(0)] AS admittingDiagnosis_code_str
 
 
   FROM
@@ -62,7 +62,7 @@ SpecimenPreparationSequence_unnested AS (
     slide_embedding AS (
     SELECT
       SeriesInstanceUID,
-      ARRAY_AGG(DISTINCT(CONCAT(ccs_cm,":",ccs_csd,":",ccs_val)) ORDER BY 1) as embeddingMedium_code_str
+      ARRAY_AGG(DISTINCT(CONCAT(ccs_cm,":",ccs_csd,":",ccs_val)) ORDER BY CONCAT(ccs_cm,":",ccs_csd,":",ccs_val)) as embeddingMedium_code_str
     FROM SpecimenPreparationSequence_unnested
     WHERE (cnc_csd = 'SCT' and cnc_val = '430863003') -- CodeMeaning is 'Embedding medium'
     GROUP BY SeriesInstanceUID
@@ -71,7 +71,7 @@ SpecimenPreparationSequence_unnested AS (
     slide_fixative AS (
     SELECT
       SeriesInstanceUID,
-      ARRAY_AGG(DISTINCT(CONCAT(ccs_cm, ":", ccs_csd,":",ccs_val)) ORDER BY 1) as tissueFixative_code_str
+      ARRAY_AGG(DISTINCT(CONCAT(ccs_cm, ":", ccs_csd,":",ccs_val)) ORDER BY CONCAT(ccs_cm, ":", ccs_csd,":",ccs_val)) as tissueFixative_code_str
     FROM SpecimenPreparationSequence_unnested
     WHERE (cnc_csd = 'SCT' and cnc_val = '430864009') -- CodeMeaning is 'Tissue Fixative'
     GROUP BY SeriesInstanceUID
@@ -80,7 +80,7 @@ SpecimenPreparationSequence_unnested AS (
     slide_staining AS (
     SELECT
       SeriesInstanceUID,
-      ARRAY_AGG(DISTINCT(CONCAT(ccs_cm, ":", ccs_csd,":",ccs_val)) ORDER BY 1) as staining_usingSubstance_code_str,
+      ARRAY_AGG(DISTINCT(CONCAT(ccs_cm, ":", ccs_csd,":",ccs_val)) ORDER BY CONCAT(ccs_cm, ":", ccs_csd,":",ccs_val)) as staining_usingSubstance_code_str,
     FROM SpecimenPreparationSequence_unnested
     WHERE (cnc_csd = 'SCT' and cnc_val = '424361007') -- CodeMeaning is 'Using substance'
     GROUP BY SeriesInstanceUID
@@ -185,5 +185,5 @@ WHERE
   Modality = "SM"
 ORDER BY
   primaryAnatomicStructure_CodeMeaning,
-  staining_usingSubstance_CodeMeaning,
+  staining_usingSubstance_CodeMeaning[SAFE_OFFSET(0)],
   collection_id
