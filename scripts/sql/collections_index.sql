@@ -41,3 +41,5 @@ SELECT
   Description
 FROM
   `bigquery-public-data.idc_v23.original_collections_metadata`
+ORDER BY
+  collection_id

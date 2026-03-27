@@ -170,3 +170,5 @@ ON
   dicom_all.SOPInstanceUID = dicom_curated.SOPInstanceUID
 GROUP BY
   SeriesInstanceUID
+ORDER BY
+  collection_id, PatientID, StudyInstanceUID, SeriesInstanceUID
