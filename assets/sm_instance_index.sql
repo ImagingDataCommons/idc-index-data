@@ -24,7 +24,7 @@ WITH
   slide_embedding AS (
   SELECT
     SOPInstanceUID,
-    ARRAY_AGG(DISTINCT(CONCAT(ccs_cm,":",ccs_csd,":",ccs_val)) ORDER BY 1) AS embeddingMedium_code_str
+    ARRAY_AGG(DISTINCT(CONCAT(ccs_cm,":",ccs_csd,":",ccs_val)) ORDER BY CONCAT(ccs_cm,":",ccs_csd,":",ccs_val)) AS embeddingMedium_code_str
   FROM
     SpecimenPreparationSequence_unnested
   WHERE
@@ -35,7 +35,7 @@ WITH
   slide_fixative AS (
   SELECT
     SOPInstanceUID,
-    ARRAY_AGG(DISTINCT(CONCAT(ccs_cm, ":", ccs_csd,":",ccs_val)) ORDER BY 1) AS tissueFixative_code_str
+    ARRAY_AGG(DISTINCT(CONCAT(ccs_cm, ":", ccs_csd,":",ccs_val)) ORDER BY CONCAT(ccs_cm, ":", ccs_csd,":",ccs_val)) AS tissueFixative_code_str
   FROM
     SpecimenPreparationSequence_unnested
   WHERE
@@ -46,7 +46,7 @@ WITH
   slide_staining AS (
   SELECT
     SOPInstanceUID,
-    ARRAY_AGG(DISTINCT(CONCAT(ccs_cm, ":", ccs_csd,":",ccs_val)) ORDER BY 1) AS staining_usingSubstance_code_str,
+    ARRAY_AGG(DISTINCT(CONCAT(ccs_cm, ":", ccs_csd,":",ccs_val)) ORDER BY CONCAT(ccs_cm, ":", ccs_csd,":",ccs_val)) AS staining_usingSubstance_code_str,
   FROM
     SpecimenPreparationSequence_unnested
   WHERE
@@ -160,6 +160,6 @@ ON
 WHERE
   dicom_all.Modality="SM"
 ORDER BY
-  staining_usingSubstance_CodeMeaning,
+  staining_usingSubstance_CodeMeaning[SAFE_OFFSET(0)],
   TransferSyntaxUID,
   SeriesInstanceUID

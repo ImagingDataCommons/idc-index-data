@@ -8,9 +8,9 @@
 WITH contrast_data AS (
   SELECT
     SeriesInstanceUID,
-    ARRAY_AGG(DISTINCT ContrastBolusAgent IGNORE NULLS ORDER BY 1) AS ContrastBolusAgent,
-    ARRAY_AGG(DISTINCT ContrastBolusIngredient IGNORE NULLS ORDER BY 1) AS ContrastBolusIngredient,
-    ARRAY_AGG(DISTINCT ContrastBolusRoute IGNORE NULLS ORDER BY 1) AS ContrastBolusRoute
+    ARRAY_AGG(DISTINCT ContrastBolusAgent IGNORE NULLS ORDER BY ContrastBolusAgent) AS ContrastBolusAgent,
+    ARRAY_AGG(DISTINCT ContrastBolusIngredient IGNORE NULLS ORDER BY ContrastBolusIngredient) AS ContrastBolusIngredient,
+    ARRAY_AGG(DISTINCT ContrastBolusRoute IGNORE NULLS ORDER BY ContrastBolusRoute) AS ContrastBolusRoute
   FROM `bigquery-public-data.idc_v23.dicom_all`
   WHERE Modality IN ('CT', 'MR', 'PT', 'XA', 'RF')
   GROUP BY SeriesInstanceUID
@@ -38,6 +38,6 @@ WHERE
   OR ARRAY_LENGTH(ContrastBolusIngredient) > 0
   OR ARRAY_LENGTH(ContrastBolusRoute) > 0
 ORDER BY
-  ContrastBolusAgent,
-  ContrastBolusIngredient,
-  ContrastBolusRoute
+  ContrastBolusAgent[SAFE_OFFSET(0)],
+  ContrastBolusIngredient[SAFE_OFFSET(0)],
+  ContrastBolusRoute[SAFE_OFFSET(0)]

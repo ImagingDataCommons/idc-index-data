@@ -146,10 +146,10 @@ SELECT
   COUNT(DISTINCT (SegmentNumber)) total_segments,
   # description:
   # Segmentation algorithm type as available in DICOM SegmentAlgorithmType
-  string_agg(DISTINCT (SegmentAlgorithmType), ',' ORDER BY 1) AS AlgorithmType,
+  string_agg(DISTINCT (SegmentAlgorithmType), ',' ORDER BY SegmentAlgorithmType) AS AlgorithmType,
   # description:
   # Segmentation algorithm name as available in DICOM SegmentAlgorithmName
-  string_agg(DISTINCT (SegmentAlgorithmName), ',' ORDER BY 1) AS AlgorithmName,
+  string_agg(DISTINCT (SegmentAlgorithmName), ',' ORDER BY SegmentAlgorithmName) AS AlgorithmName,
   # description:
   # SeriesInstanceUID of the referenced image series that the segmentation applies to
   any_value(segmentations.segmented_SeriesInstanceUID)
@@ -158,19 +158,19 @@ SELECT
   # Array of distinct CodeMeaning values from SegmentedPropertyCategoryCodeSequence across all segments
   # in the series, representing the broad category of the segmented property as defined in DICOM PS3.3 C.8.20.2,
   # e.g., ["Anatomical Structure"], ["Morphologically Altered Structure"]
-  ARRAY_AGG(DISTINCT SegmentedPropertyCategory.CodeMeaning IGNORE NULLS ORDER BY 1)
+  ARRAY_AGG(DISTINCT SegmentedPropertyCategory.CodeMeaning IGNORE NULLS ORDER BY SegmentedPropertyCategory.CodeMeaning)
     AS SegmentedPropertyCategory_CodeMeanings,
   # description:
   # Array of distinct CodeMeaning values from SegmentedPropertyTypeCodeSequence across all segments
   # in the series, representing the specific type of the segmented property as defined in DICOM PS3.3 C.8.20.2,
   # e.g., ["Liver", "Kidney", "Spleen"]
-  ARRAY_AGG(DISTINCT SegmentedPropertyType.CodeMeaning IGNORE NULLS ORDER BY 1)
+  ARRAY_AGG(DISTINCT SegmentedPropertyType.CodeMeaning IGNORE NULLS ORDER BY SegmentedPropertyType.CodeMeaning)
     AS SegmentedPropertyType_CodeMeanings,
   # description:
   # Array of distinct CodeMeaning values from AnatomicRegionSequence across all segments
   # in the series, representing the anatomic location of the segmented structure as defined in DICOM PS3.3 C.8.20.2,
   # e.g., ["Abdomen"], ["Thorax", "Head"]
-  ARRAY_AGG(DISTINCT AnatomicRegion.CodeMeaning IGNORE NULLS ORDER BY 1)
+  ARRAY_AGG(DISTINCT AnatomicRegion.CodeMeaning IGNORE NULLS ORDER BY AnatomicRegion.CodeMeaning)
     AS AnatomicRegion_CodeMeanings
 FROM segmentations
 GROUP BY SeriesInstanceUID

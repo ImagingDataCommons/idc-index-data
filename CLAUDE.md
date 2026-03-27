@@ -11,6 +11,19 @@ so only repo-level persistence is reliable.
 Always run `pre-commit run --files <staged files>` before committing to catch
 formatting and linting issues. Fix any failures before creating the commit.
 
+## After modifying SQL queries
+
+Validate every changed SQL file against BigQuery with `--dry_run` before
+committing:
+
+```bash
+bq query --project_id=idc-sandbox-000 --use_legacy_sql=false --dry_run < path/to/query.sql
+```
+
+Fix any query errors before creating the commit. Note that
+`prior_versions_index.sql` uses procedural SQL (`EXECUTE IMMEDIATE`) and cannot
+be validated with `--dry_run`.
+
 ## Before starting any task
 
 Read the developer documentation in `docs/dev/` before exploring the codebase.
