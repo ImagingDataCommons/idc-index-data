@@ -40,7 +40,7 @@ repos:
         args: [--prose-wrap=always]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.15.8"
+    rev: "v0.15.9"
     hooks:
       - id: ruff-check
         args: ["--fix", "--show-fixes"]
@@ -49,7 +49,7 @@ repos:
         exclude: ^scripts/python/compare_parquet\.py$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.19.1"
+    rev: "v1.20.0"
     hooks:
       - id: mypy
         files: src|tests
@@ -78,7 +78,7 @@ repos:
         exclude: .pre-commit-config.yaml
 
   - repo: https://github.com/henryiii/validate-pyproject-schema-store
-    rev: "2026.03.29"
+    rev: "2026.04.03"
     hooks:
       - id: validate-pyproject
 
