@@ -188,13 +188,11 @@ jobs:
           cat > /tmp/cors.json << 'CORS'
           [
             {
-              "origin": [
-                "https://localhost.gdc.cancer.gov:3010",
-                "https://portal.gdc.cancer.gov"
-              ],
-              "method": ["GET", "HEAD"],
-              "responseHeader": ["Content-Type", "Content-Length", "Content-Range"],
-              "maxAgeSeconds": 3600
+              "AllowedHeaders": ["Range"],
+              "AllowedMethods": ["GET", "HEAD"],
+              "AllowedOrigins": ["*"],
+              "ExposeHeaders": ["Content-Range", "Content-Length", "Content-Type", "Accept-Ranges"],
+              "MaxAgeSeconds": 86400
             }
           ]
           CORS
