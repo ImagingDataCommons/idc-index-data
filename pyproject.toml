@@ -45,6 +45,7 @@ test = [
   "pyarrow",
   "pytest >=6",
   "pytest-cov >=3",
+  "requests",
 ]
 dev = [
   "pytest >=6",

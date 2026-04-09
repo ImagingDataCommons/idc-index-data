@@ -1,0 +1,84 @@
+name: GCS CORS health check
+
+on:
+  schedule:
+    # Run daily at 06:00 UTC
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: 3
+
+jobs:
+  gcs-cors:
+    name: GCS CORS regression tests
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install pandas pyarrow pytest requests
+
+      - name: Run GCS CORS tests
+        id: tests
+        run: pytest tests/test_gcs_cors.py -v --tb=short
+        continue-on-error: true
+
+      - name: Open issue on failure
+        if: steps.tests.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'GCS CORS health check failed';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            // Search for an existing open issue with the same title to avoid duplicates
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'gcs-cors',
+            });
+            const existing = issues.find(i => i.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: `Still failing — [run ${context.runId}](${runUrl})`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                labels: ['gcs-cors'],
+                body: [
+                  '## GCS CORS health check failed',
+                  '',
+                  `The daily CORS regression tests failed. See [workflow run](${runUrl}) for details.`,
+                  '',
+                  '**Possible causes:**',
+                  '- Bucket IAM policy no longer grants public read access',
+                  '- CORS configuration was reset or modified',
+                  '- Range request support is broken',
+                  '',
+                  'Fix by re-running the `upload-to-gcs` job in the CD workflow, which re-applies the CORS policy.',
+                ].join('\n'),
+              });
+            }
+
+      - name: Fail job after issue is filed
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
