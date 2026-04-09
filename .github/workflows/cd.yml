@@ -188,15 +188,33 @@ jobs:
           cat > /tmp/cors.json << 'CORS'
           [
             {
-              "AllowedHeaders": ["Range"],
-              "AllowedMethods": ["GET", "HEAD"],
-              "AllowedOrigins": ["*"],
-              "ExposeHeaders": ["Content-Range", "Content-Length", "Content-Type", "Accept-Ranges"],
-              "MaxAgeSeconds": 86400
+              "origin": ["*"],
+              "method": ["GET", "HEAD"],
+              "responseHeader": ["Content-Range", "Content-Length", "Content-Type", "Accept-Ranges", "Range"],
+              "maxAgeSeconds": 86400
             }
           ]
           CORS
           gcloud storage buckets update gs://idc-index-data-artifacts --cors-file=/tmp/cors.json
+
+  gcs-cors:
+    name: GCS CORS regression tests
+    needs: [upload-to-gcs]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'published'
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install pandas pyarrow pytest requests
+
+      - name: Run GCS CORS tests
+        run: pytest tests/test_gcs_cors.py -v --tb=short
 
   publish:
     needs: [dist]
