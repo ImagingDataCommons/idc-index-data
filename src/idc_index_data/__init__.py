@@ -16,6 +16,8 @@ from ._version import version as __version__
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "ANALYSIS_RESULTS_INDEX_PARQUET_FILEPATH",
+    "COLLECTIONS_INDEX_PARQUET_FILEPATH",
     "IDC_INDEX_CSV_ARCHIVE_FILEPATH",
     "IDC_INDEX_PARQUET_FILEPATH",
     "INDEX_METADATA",
@@ -77,6 +79,12 @@ IDC_INDEX_CSV_ARCHIVE_FILEPATH: Path | None = _lookup(
 IDC_INDEX_PARQUET_FILEPATH: Path | None = _lookup("idc_index_data/idc_index.parquet")
 PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH: Path | None = _lookup(
     "idc_index_data/prior_versions_index.parquet"
+)
+COLLECTIONS_INDEX_PARQUET_FILEPATH: Path | None = _lookup(
+    "idc_index_data/collections_index.parquet"
+)
+ANALYSIS_RESULTS_INDEX_PARQUET_FILEPATH: Path | None = _lookup(
+    "idc_index_data/analysis_results_index.parquet"
 )
 
 # Build unified metadata dictionary for all 7 indices
