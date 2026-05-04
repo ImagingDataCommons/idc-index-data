@@ -37,7 +37,7 @@ jobs:
 
       - name: Open issue on failure
         if: steps.tests.outcome == 'failure'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const title = 'GCS CORS health check failed';
