@@ -11,34 +11,34 @@ SELECT
   collection_id,
   # description:
   # types of cancer represented in the collection
-  CancerTypes,
+  cancer_types,
   # description:
   # locations of tumors represented in the collection
-  TumorLocations,
+  tumor_locations,
   # description:
   # number of subjects in the collection
-  Subjects,
+  subjects,
   # description:
   # species represented in the collection
-  Species,
+  species,
   # description:
   # sources of data for the collection
-  Sources,
+  sources,
   # description:
   # additional data supporting the collection available in IDC
-  SupportingData,
+  supporting_data,
   # description:
   # broader initiative/category under which this collection is being shared
-  Program,
+  program_id,
   # description:
   # status of the collection (Completed or Ongoing)
-  Status,
+  status,
   # description:
-  # timestamp of the last update to the collection
-  SAFE_CAST(Updated AS STRING) AS Updated,
+  # date of the last update to the collection
+  updated,
   # description:
   # detailed information about the collection
-  Description
+  description
 FROM
   `bigquery-public-data.idc_v24.original_collections_metadata`
 ORDER BY

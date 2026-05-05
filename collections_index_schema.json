@@ -1,0 +1,159 @@
+{
+  "table_description": "This table contains metadata about the collections available in IDC. Each row corresponds to a collection, and contains attributes such as the collection name, types of cancer represented, number of subjects, and pointers to the resources to learn more about the content of the collection.",
+  "columns": [
+    {
+      "name": "collection_name",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "name of the collection"
+    },
+    {
+      "name": "collection_id",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "unique identifier of the collection"
+    },
+    {
+      "name": "cancer_types",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "types of cancer represented in the collection"
+    },
+    {
+      "name": "tumor_locations",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "locations of tumors represented in the collection"
+    },
+    {
+      "name": "subjects",
+      "type": "INTEGER",
+      "mode": "NULLABLE",
+      "description": "number of subjects in the collection"
+    },
+    {
+      "name": "species",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "species represented in the collection"
+    },
+    {
+      "name": "sources",
+      "type": "RECORD",
+      "mode": "REPEATED",
+      "description": "sources of data for the collection",
+      "fields": [
+        {
+          "name": "source_id",
+          "type": "STRING",
+          "mode": "NULLABLE",
+          "description": "unique identifier of the source"
+        },
+        {
+          "name": "source_title",
+          "type": "STRING",
+          "mode": "NULLABLE",
+          "description": "title of the source"
+        },
+        {
+          "name": "source_type",
+          "type": "STRING",
+          "mode": "NULLABLE",
+          "description": "type of the source"
+        },
+        {
+          "name": "source_doi",
+          "type": "STRING",
+          "mode": "NULLABLE",
+          "description": "DOI of the source"
+        },
+        {
+          "name": "source_url",
+          "type": "STRING",
+          "mode": "NULLABLE",
+          "description": "URL of the source"
+        },
+        {
+          "name": "modalities",
+          "type": "STRING",
+          "mode": "NULLABLE",
+          "description": "imaging modalities in this source"
+        },
+        {
+          "name": "license",
+          "type": "RECORD",
+          "mode": "NULLABLE",
+          "description": "license information for the source",
+          "fields": [
+            {
+              "name": "license_url",
+              "type": "STRING",
+              "mode": "NULLABLE",
+              "description": "URL of the license"
+            },
+            {
+              "name": "license_long_name",
+              "type": "STRING",
+              "mode": "NULLABLE",
+              "description": "full name of the license"
+            },
+            {
+              "name": "license_short_name",
+              "type": "STRING",
+              "mode": "NULLABLE",
+              "description": "abbreviated name of the license"
+            }
+          ]
+        },
+        {
+          "name": "citation",
+          "type": "STRING",
+          "mode": "NULLABLE",
+          "description": "citation text for the source"
+        },
+        {
+          "name": "Access",
+          "type": "STRING",
+          "mode": "NULLABLE",
+          "description": "access level of the source"
+        },
+        {
+          "name": "ImageTypes",
+          "type": "STRING",
+          "mode": "NULLABLE",
+          "description": "image types available in the source"
+        }
+      ]
+    },
+    {
+      "name": "supporting_data",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "additional data supporting the collection available in IDC"
+    },
+    {
+      "name": "program_id",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "broader initiative/category under which this collection is being shared"
+    },
+    {
+      "name": "status",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "status of the collection (Completed or Ongoing)"
+    },
+    {
+      "name": "updated",
+      "type": "DATE",
+      "mode": "NULLABLE",
+      "description": "date of the last update to the collection"
+    },
+    {
+      "name": "description",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "detailed information about the collection"
+    }
+  ]
+}
