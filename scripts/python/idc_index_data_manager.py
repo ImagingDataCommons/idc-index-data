@@ -254,6 +254,13 @@ class IDCIndexDataManager:
         """
         with Path(file_path).open("r") as file:
             sql_query = file.read()
+        # add try/catch and print query if error occurs to help with debugging
+        try:
+            query_job_result = self.client.query(sql_query).result()
+        except Exception as e:
+            logger.error("Error occurred while executing SQL query from file: %s", file_path)
+            logger.error(e)
+            raise e
         query_job_result = self.client.query(sql_query).result()
         schema = query_job_result.schema  # Get schema from BigQuery QueryJob
         index_df = query_job_result.to_dataframe()
