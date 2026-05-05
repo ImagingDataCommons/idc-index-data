@@ -70,7 +70,7 @@
 #       used when all values in the group are expected to be the same.
 
 # To use a specific IDC version instead of idc_current, replace
-# `bigquery-public-data.idc_current.dicom_all` with e.g. `bigquery-public-data.idc_v18.dicom_all`
+# `bigquery-public-data.idc_current.dicom_all` with e.g. `bigquery-public-data.idc_v24.dicom_all`
 
 # Configurable parameters
 DECLARE relativeSliceTolerance FLOAT64 DEFAULT 0.01;   # max allowed variation in slice spacing as a fraction

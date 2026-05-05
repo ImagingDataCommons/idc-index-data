@@ -21,7 +21,7 @@ SELECT
   ReferencedSeriesSequence[SAFE_OFFSET(0)].SeriesInstanceUID AS referenced_SeriesInstanceUID
 
 FROM
-  `bigquery-public-data.idc_v23.dicom_all` AS ann
+  `bigquery-public-data.idc_v24.dicom_all` AS ann
 WHERE
   # Microscopy Bulk Simple Annotations SOP Class UID - more reliable than Modality = "ANN"
   SOPClassUID = "1.2.840.10008.5.1.4.1.1.91.1"

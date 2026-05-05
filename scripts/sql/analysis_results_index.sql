@@ -43,6 +43,6 @@ SELECT
   # citation for the analysis results collection that should be used for acknowledgment
   Citation
 FROM
-  `bigquery-public-data.idc_v23.analysis_results_metadata`
+  `bigquery-public-data.idc_v24.analysis_results_metadata`
 ORDER BY
   analysis_result_id

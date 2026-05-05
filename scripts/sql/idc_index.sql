@@ -163,9 +163,9 @@ SELECT
   # total size of the series in megabytes
   SUM(SAFE_CAST(instance_size AS float64))/1000000. AS series_size_MB,
 FROM
-  `bigquery-public-data.idc_v23.dicom_all` AS dicom_all
+  `bigquery-public-data.idc_v24.dicom_all` AS dicom_all
 LEFT JOIN
-  `bigquery-public-data.idc_v23.dicom_metadata_curated` AS dicom_curated
+  `bigquery-public-data.idc_v24.dicom_metadata_curated` AS dicom_curated
 ON
   dicom_all.SOPInstanceUID = dicom_curated.SOPInstanceUID
 GROUP BY
