@@ -258,7 +258,9 @@ class IDCIndexDataManager:
         try:
             query_job_result = self.client.query(sql_query).result()
         except Exception as e:
-            logger.error("Error occurred while executing SQL query from file: %s", file_path)
+            logger.error(
+                "Error occurred while executing SQL query from file: %s", file_path
+            )
             logger.error(e)
             raise e
         query_job_result = self.client.query(sql_query).result()
