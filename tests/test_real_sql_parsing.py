@@ -28,16 +28,16 @@ def test_real_sql_files() -> None:
         expected_columns = [
             "collection_name",
             "collection_id",
-            "CancerTypes",
-            "TumorLocations",
-            "Subjects",
-            "Species",
-            "Sources",
-            "SupportingData",
-            "Program",
-            "Status",
-            "Updated",
-            "Description",
+            "cancer_types",
+            "tumor_locations",
+            "subjects",
+            "species",
+            "sources",
+            "supporting_data",
+            "program_id",
+            "status",
+            "updated",
+            "description",
         ]
         for col in expected_columns:
             assert col in descriptions, (
