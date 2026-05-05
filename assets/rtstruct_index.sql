@@ -16,7 +16,7 @@ WITH
       roi.ROIName,
       roi.ROIGenerationAlgorithm
     FROM
-      `bigquery-public-data.idc_v23.dicom_all`
+      `bigquery-public-data.idc_v24.dicom_all`
     CROSS JOIN
       UNNEST(StructureSetROISequence) AS roi
     WHERE
@@ -29,7 +29,7 @@ WITH
       obs.ReferencedROINumber,
       obs.RTROIInterpretedType
     FROM
-      `bigquery-public-data.idc_v23.dicom_all`
+      `bigquery-public-data.idc_v24.dicom_all`
     CROSS JOIN
       UNNEST(RTROIObservationsSequence) AS obs
     WHERE
@@ -40,7 +40,7 @@ WITH
       SOPInstanceUID,
       rt_series.SeriesInstanceUID AS referenced_SeriesInstanceUID
     FROM
-      `bigquery-public-data.idc_v23.dicom_all`
+      `bigquery-public-data.idc_v24.dicom_all`
     CROSS JOIN
       UNNEST(ReferencedFrameOfReferenceSequence) AS ref_frame
     CROSS JOIN

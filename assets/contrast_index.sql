@@ -11,7 +11,7 @@ WITH contrast_data AS (
     ARRAY_AGG(DISTINCT ContrastBolusAgent IGNORE NULLS ORDER BY ContrastBolusAgent) AS ContrastBolusAgent,
     ARRAY_AGG(DISTINCT ContrastBolusIngredient IGNORE NULLS ORDER BY ContrastBolusIngredient) AS ContrastBolusIngredient,
     ARRAY_AGG(DISTINCT ContrastBolusRoute IGNORE NULLS ORDER BY ContrastBolusRoute) AS ContrastBolusRoute
-  FROM `bigquery-public-data.idc_v23.dicom_all`
+  FROM `bigquery-public-data.idc_v24.dicom_all`
   WHERE Modality IN ('CT', 'MR', 'PT', 'XA', 'RF')
   GROUP BY SeriesInstanceUID
 )

@@ -63,7 +63,7 @@ SELECT
   group_item.AnnotationGroupAlgorithmIdentificationSequence[SAFE_OFFSET(0)].AlgorithmName AS AlgorithmName
 
 FROM
-  `bigquery-public-data.idc_v23.dicom_all` AS ann
+  `bigquery-public-data.idc_v24.dicom_all` AS ann
 CROSS JOIN
   UNNEST(ann.AnnotationGroupSequence) AS group_item
 WHERE
