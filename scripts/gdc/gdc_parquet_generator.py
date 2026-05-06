@@ -1,9 +1,9 @@
 """Check which IDC PatientIDs from GDC-related collections exist in the Genomic Data Commons.
 
 PatientID is only unique within a collection/project, so the GDC lookup is
-scoped by project.  IDC collection_id maps to GDC project.project_id with one
-special case: all CPTAC sub-collections in IDC (cptac_brca, cptac_luad, ...)
-fall under CPTAC-2 or CPTAC-3 in GDC, so those are queried together.
+scoped by project.  The mapping from IDC collection_id to GDC project_id is
+explicit in IDC_TO_GDC_PROJECTS; add new collections there when they are added
+to the SQL query.
 """
 
 from __future__ import annotations
@@ -29,8 +29,73 @@ REQUEST_TIMEOUT = 30  # seconds
 SQL_FILE = Path(__file__).parent / "idc_gdc_selection.sql"
 OUTPUT_PARQUET = "gdc_idc_mapping.parquet"
 
-# IDC CPTAC sub-collections map to these GDC umbrella projects.
-GDC_CPTAC_PROJECTS = ["CPTAC-2", "CPTAC-3"]
+# Explicit mapping from IDC collection_id to GDC project_id(s).
+# CPTAC sub-collections in IDC all map to the GDC umbrella projects CPTAC-2 and CPTAC-3.
+# CDDP_EAGLE-1 uses an underscore in the GDC project name (not a hyphen like most programs).
+IDC_TO_GDC_PROJECTS: dict[str, list[str]] = {
+    # TCGA
+    "tcga_acc": ["TCGA-ACC"],
+    "tcga_blca": ["TCGA-BLCA"],
+    "tcga_brca": ["TCGA-BRCA"],
+    "tcga_cesc": ["TCGA-CESC"],
+    "tcga_chol": ["TCGA-CHOL"],
+    "tcga_coad": ["TCGA-COAD"],
+    "tcga_dlbc": ["TCGA-DLBC"],
+    "tcga_esca": ["TCGA-ESCA"],
+    "tcga_gbm": ["TCGA-GBM"],
+    "tcga_hnsc": ["TCGA-HNSC"],
+    "tcga_kich": ["TCGA-KICH"],
+    "tcga_kirc": ["TCGA-KIRC"],
+    "tcga_kirp": ["TCGA-KIRP"],
+    "tcga_lgg": ["TCGA-LGG"],
+    "tcga_lihc": ["TCGA-LIHC"],
+    "tcga_luad": ["TCGA-LUAD"],
+    "tcga_lusc": ["TCGA-LUSC"],
+    "tcga_meso": ["TCGA-MESO"],
+    "tcga_ov": ["TCGA-OV"],
+    "tcga_paad": ["TCGA-PAAD"],
+    "tcga_pcpg": ["TCGA-PCPG"],
+    "tcga_prad": ["TCGA-PRAD"],
+    "tcga_read": ["TCGA-READ"],
+    "tcga_sarc": ["TCGA-SARC"],
+    "tcga_skcm": ["TCGA-SKCM"],
+    "tcga_stad": ["TCGA-STAD"],
+    "tcga_tgct": ["TCGA-TGCT"],
+    "tcga_thca": ["TCGA-THCA"],
+    "tcga_thym": ["TCGA-THYM"],
+    "tcga_ucec": ["TCGA-UCEC"],
+    "tcga_ucs": ["TCGA-UCS"],
+    "tcga_uvm": ["TCGA-UVM"],
+    # CPTAC (IDC per-cancer sub-collections map to GDC umbrella projects)
+    "cptac_aml": ["CPTAC-2", "CPTAC-3"],
+    "cptac_brca": ["CPTAC-2", "CPTAC-3"],
+    "cptac_ccrcc": ["CPTAC-2", "CPTAC-3"],
+    "cptac_cm": ["CPTAC-2", "CPTAC-3"],
+    "cptac_coad": ["CPTAC-2", "CPTAC-3"],
+    "cptac_gbm": ["CPTAC-2", "CPTAC-3"],
+    "cptac_hnscc": ["CPTAC-2", "CPTAC-3"],
+    "cptac_lscc": ["CPTAC-2", "CPTAC-3"],
+    "cptac_luad": ["CPTAC-2", "CPTAC-3"],
+    "cptac_ov": ["CPTAC-2", "CPTAC-3"],
+    "cptac_pda": ["CPTAC-2", "CPTAC-3"],
+    "cptac_sar": ["CPTAC-2", "CPTAC-3"],
+    "cptac_stad": ["CPTAC-2", "CPTAC-3"],
+    "cptac_ucec": ["CPTAC-2", "CPTAC-3"],
+    # Other GDC programs
+    "ccdi_mci": ["CCDI-MCI"],
+    "varepop_apollo": ["VAREPOP-APOLLO"],
+    # v24 new GDC collections
+    "cddp_eagle_1": ["CDDP_EAGLE-1"],
+    "cgci_blgsp": ["CGCI-BLGSP"],
+    "cgci_htmcp_cc": ["CGCI-HTMCP-CC"],
+    "cgci_htmcp_dlbcl": ["CGCI-HTMCP-DLBCL"],
+    "cgci_htmcp_lc": ["CGCI-HTMCP-LC"],
+    "hcmi_cmdc": ["HCMI-CMDC"],
+}
+
+# Collections confirmed to have no cases in GDC (imaging-only, never registered).
+# These are excluded from the zero-match check in validate_gdc_matches().
+GDC_ABSENT_COLLECTIONS: frozenset[str] = frozenset({"cptac_cm", "cptac_sar"})
 
 
 def _create_session() -> requests.Session:
@@ -49,15 +114,16 @@ _session = _create_session()
 
 
 def idc_collection_to_gdc_projects(collection_id: str) -> list[str]:
-    """Map an IDC collection_id to the corresponding GDC project_id(s).
+    """Return the GDC project_id(s) for the given IDC collection_id.
 
-    For most collections the mapping is simply upper-case + hyphens
-    (e.g. tcga_brca -> TCGA-BRCA).  CPTAC is the exception: IDC has
-    per-cancer collections but GDC groups them under CPTAC-2 / CPTAC-3.
+    Raises ValueError for unknown collections so missing mappings are caught
+    immediately rather than silently querying the wrong GDC project.
     """
-    if collection_id.startswith("cptac_"):
-        return GDC_CPTAC_PROJECTS
-    return [collection_id.replace("_", "-").upper()]
+    projects = IDC_TO_GDC_PROJECTS.get(collection_id)
+    if projects is None:
+        msg = f"No GDC project mapping for IDC collection {collection_id!r} — add it to IDC_TO_GDC_PROJECTS"
+        raise ValueError(msg)
+    return projects
 
 
 def run_bigquery(project_id: str | None = None) -> pd.DataFrame:
@@ -266,6 +332,28 @@ def save_results(df: pd.DataFrame, output_path: str = OUTPUT_PARQUET) -> None:
         con.close()
 
 
+def validate_gdc_matches(studies_df: pd.DataFrame) -> None:
+    """Raise an error if any mapped collection has zero GDC case ID matches.
+
+    Collections in GDC_ABSENT_COLLECTIONS are exempt (confirmed not in GDC).
+    A zero-match result for any other collection most likely indicates a wrong
+    GDC project ID in IDC_TO_GDC_PROJECTS.
+    """
+    errors: list[str] = []
+    for cid, group in studies_df.groupby("collection_id"):
+        if cid in GDC_ABSENT_COLLECTIONS:
+            continue
+        if group["gdc_case_id"].notna().sum() == 0:
+            errors.append(
+                f"  {cid}: 0/{len(group)} rows matched — check IDC_TO_GDC_PROJECTS"
+            )
+    if errors:
+        msg = "Collections with no GDC matches (expected at least one):\n" + "\n".join(
+            errors
+        )
+        raise RuntimeError(msg)
+
+
 def main() -> None:
     """Main entry point."""
     project_id = os.environ.get("GCP_PROJECT")
@@ -298,6 +386,7 @@ def main() -> None:
         f"  Patients: {n_patients_found}/{n_patients} unique (collection, PatientID) pairs in GDC"
     )
 
+    validate_gdc_matches(studies_df)
     save_results(studies_df)
 
 

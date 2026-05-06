@@ -19,14 +19,23 @@ Checks which IDC patients from GDC-related collections exist as cases in GDC.
 ### IDC collection to GDC project mapping
 
 PatientIDs are only unique within a project/collection, so the GDC lookup is
-scoped by project:
+scoped by project. The mapping is defined explicitly in `IDC_TO_GDC_PROJECTS` in
+`gdc_parquet_generator.py`. Notable cases:
 
-- **TCGA**: direct 1:1 mapping (e.g. `tcga_brca` -> `TCGA-BRCA`)
-- **CCDI**: direct mapping (`ccdi_mci` -> `CCDI-MCI`)
-- **VAREPOP-APOLLO**: direct mapping (`varepop_apollo` -> `VAREPOP-APOLLO`)
-- **CPTAC**: IDC has per-cancer collections (`cptac_brca`, `cptac_luad`, ...)
-  but GDC groups all CPTAC cases under umbrella projects `CPTAC-2` and
+- **TCGA**: 1:1 mapping (e.g. `tcga_brca` → `TCGA-BRCA`)
+- **CCDI**: `ccdi_mci` → `CCDI-MCI`
+- **VAREPOP-APOLLO**: `varepop_apollo` → `VAREPOP-APOLLO`
+- **CPTAC**: IDC has per-cancer sub-collections (`cptac_brca`, `cptac_luad`,
+  ...) but GDC groups all CPTAC cases under umbrella projects `CPTAC-2` and
   `CPTAC-3`, so all CPTAC patients are queried against both.
+- **CGCI**: `cgci_blgsp` → `CGCI-BLGSP`, `cgci_htmcp_cc` → `CGCI-HTMCP-CC`, etc.
+- **HCMI**: `hcmi_cmdc` → `HCMI-CMDC`
+- **CDDP-EAGLE-1**: `cddp_eagle_1` → `CDDP_EAGLE-1` — GDC uses an underscore
+  between `CDDP` and `EAGLE` in the project name (not a hyphen).
+
+When adding a new GDC collection to `idc_gdc_selection.sql`, also add its entry
+to `IDC_TO_GDC_PROJECTS`. The function raises `ValueError` for any collection
+not in the map, so missing entries are caught immediately.
 
 ### Output schema
 
@@ -95,12 +104,11 @@ These patients exist in GDC but are not matched due to the ID discrepancy.
 
 ## Collection coverage analysis
 
-GDC has 91 projects. We cross-referenced all IDC collection names against all
-GDC project IDs and confirmed that the current SQL filters (`tcga%`, `%apollo%`,
-`%cptac%`, `%ccdi%`) cover every IDC collection that has a corresponding GDC
-project.
+The SQL in `idc_gdc_selection.sql` selects all IDC collections whose
+`collection_id` matches one of the GDC-related LIKE patterns. When a new GDC
+collection is added, both the SQL pattern and `IDC_TO_GDC_PROJECTS` must be
+updated in tandem.
 
-The remaining ~120 IDC collections (e.g. `acrin_*`, `cmb_*`, `htan_*`, `nlst`,
-`rider_*`, `qin_*`, etc.) do not correspond to any GDC project. Other GDC
-programs (TARGET, MATCH, CGCI, CMI, MMRF, HCMI, BEATAML, FM-AD, WCDT, etc.) do
-not have imaging collections in IDC.
+The remaining IDC collections (e.g. `acrin_*`, `cmb_*`, `htan_*`, `nlst`,
+`rider_*`, `qin_*`, etc.) do not correspond to any GDC project and are not
+included in this mapping.
