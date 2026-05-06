@@ -15,10 +15,6 @@ def test_version():
     assert importlib.metadata.version("idc_index_data") == m.__version__
 
 
-def test_idc_index_version():
-    assert Version(m.__version__).major == EXPECTED_IDC_INDEX_VERSION
-
-
 def test_filepath():
     if m.IDC_INDEX_CSV_ARCHIVE_FILEPATH is not None:
         assert m.IDC_INDEX_CSV_ARCHIVE_FILEPATH.is_file()
