@@ -8,7 +8,7 @@ WITH
       ANY_VALUE(StudyDescription) AS StudyDescription,
       ARRAY_AGG(DISTINCT Modality ORDER BY Modality) AS Modalities
     FROM
-      `bigquery-public-data.idc_current.dicom_all`
+      `bigquery-public-data.idc_v24.dicom_all`
     WHERE
       collection_id LIKE "tcga%" OR
       collection_id LIKE "%apollo%" OR
