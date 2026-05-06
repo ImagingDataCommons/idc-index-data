@@ -13,7 +13,10 @@ WITH
       collection_id LIKE "tcga%" OR
       collection_id LIKE "%apollo%" OR
       collection_id LIKE "%cptac%" OR
-      collection_id LIKE "%ccdi%"
+      collection_id LIKE "%ccdi%" OR
+      collection_id LIKE "cgci%" OR
+      collection_id LIKE "cddp_eagle%" OR
+      collection_id LIKE "hcmi%"
     GROUP BY
       StudyInstanceUID)
 SELECT
