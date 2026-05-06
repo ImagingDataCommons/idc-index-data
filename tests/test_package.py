@@ -4,7 +4,6 @@ import importlib.metadata
 from pathlib import Path
 
 import pandas as pd
-from packaging.version import Version
 
 import idc_index_data as m
 
