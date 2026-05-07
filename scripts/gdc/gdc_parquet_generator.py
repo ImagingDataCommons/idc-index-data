@@ -387,6 +387,9 @@ def main() -> None:
     )
 
     validate_gdc_matches(studies_df)
+
+    studies_df = studies_df[studies_df["gdc_case_id"].notna()].reset_index(drop=True)
+    print(f"  Rows after dropping NULL gdc_case_id: {len(studies_df)}")
     save_results(studies_df)
 
 
