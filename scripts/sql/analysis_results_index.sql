@@ -5,10 +5,10 @@
 SELECT
   # description:
   # unique identifier of the analysis results collection
-  ID AS analysis_result_id,
+  analysis_result_id,
   # description:
   # name of the analysis results collection
-  Title AS analysis_result_title,
+  analysis_result_title,
   # description:
   # Digital Object Identifier (DOI) of the analysis results collection
   source_doi AS source_DOI,
@@ -17,13 +17,13 @@ SELECT
   source_url,
   # description:
   # number of subjects analyzed in the analysis results collection
-  Subjects,
+  subjects,
   # description:
   # collections analyzed in the analysis results collection
-  Collections,
+  collections,
   # description:
   # modalities corresponding to the analysis artifacts included in the analysis results collection
-  Modalities,
+  modalities,
   # description:
   # timestamp of the last update to the analysis results collection
   SAFE_CAST(Updated AS STRING) AS Updated,
@@ -41,7 +41,7 @@ SELECT
   Description,
   # description:
   # citation for the analysis results collection that should be used for acknowledgment
-  Citation
+  citation
 FROM
   `bigquery-public-data.idc_v24.analysis_results_metadata`
 ORDER BY
