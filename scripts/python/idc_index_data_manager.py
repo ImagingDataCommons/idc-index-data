@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -241,6 +242,55 @@ class IDCIndexDataManager:
 
         return None
 
+    @staticmethod
+    def _compute_file_hash(file_path: str) -> str:
+        with Path(file_path).open("rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()
+
+    def _try_restore_from_cache(
+        self,
+        storage_client,
+        cache_bucket: str,
+        sql_hash: str,
+        output_basename: str,
+        output_dir: Path,
+    ) -> bool:
+        """Download cached artifacts from GCS. Returns True on cache hit."""
+        bucket = storage_client.bucket(cache_bucket)
+        cache_prefix = f"cache/{sql_hash}/{output_basename}"
+        suffixes = [".parquet", "_schema.json", ".sql"]
+        blobs = {s: bucket.blob(f"{cache_prefix}{s}") for s in suffixes}
+        if not all(blob.exists() for blob in blobs.values()):
+            logger.info("Cache miss for %s (hash %.8s)", output_basename, sql_hash)
+            return False
+        logger.info(
+            "Cache hit for %s (hash %.8s), restoring from GCS",
+            output_basename,
+            sql_hash,
+        )
+        for suffix, blob in blobs.items():
+            blob.download_to_filename(str(output_dir / f"{output_basename}{suffix}"))
+        return True
+
+    def _upload_to_cache(
+        self,
+        storage_client,
+        cache_bucket: str,
+        sql_hash: str,
+        output_basename: str,
+        output_dir: Path,
+    ) -> None:
+        """Upload generated artifacts to GCS cache."""
+        bucket = storage_client.bucket(cache_bucket)
+        cache_prefix = f"cache/{sql_hash}/{output_basename}"
+        for suffix in [".parquet", "_schema.json", ".sql"]:
+            local_path = output_dir / f"{output_basename}{suffix}"
+            if local_path.exists():
+                bucket.blob(f"{cache_prefix}{suffix}").upload_from_filename(
+                    str(local_path)
+                )
+        logger.info("Cached %s in GCS (hash %.8s)", output_basename, sql_hash)
+
     def execute_sql_query(
         self, file_path: str
     ) -> tuple[pd.DataFrame, str, list[bigquery.SchemaField], str]:
@@ -375,6 +425,7 @@ class IDCIndexDataManager:
         generate_compressed_csv: bool = True,
         generate_parquet: bool = False,
         output_dir: Path | None = None,
+        gcs_cache_bucket: str | None = None,
     ) -> None:
         """
         Generates index-data files locally by executing queries against
@@ -389,6 +440,8 @@ class IDCIndexDataManager:
             generate_compressed_csv: Whether to generate compressed CSV files
             generate_parquet: Whether to generate Parquet files
             output_dir: Optional directory path for the output files
+            gcs_cache_bucket: GCS bucket name for caching generated parquet files.
+                Cache key is the SHA256 hash of the SQL file content.
         """
 
         scripts_dir = Path(__file__).parent.parent
@@ -397,6 +450,12 @@ class IDCIndexDataManager:
 
         if output_dir:
             output_dir.mkdir(parents=True, exist_ok=True)
+
+        storage_client = None
+        if gcs_cache_bucket and generate_parquet and output_dir:
+            from google.cloud import storage  # noqa: PLC0415
+
+            storage_client = storage.Client(project=self.project_id)
 
         # Process SQL files from both directories
         sql_directories = [sql_dir, assets_dir]
@@ -409,6 +468,27 @@ class IDCIndexDataManager:
             for file_name in Path.iterdir(directory):
                 if str(file_name).endswith(".sql"):
                     file_path = Path(directory) / file_name
+
+                    sql_hash = None
+                    if storage_client and output_dir:
+                        sql_hash = self._compute_file_hash(str(file_path))
+                        output_basename = file_path.stem
+                        try:
+                            if self._try_restore_from_cache(
+                                storage_client,
+                                gcs_cache_bucket,
+                                sql_hash,
+                                output_basename,
+                                output_dir,
+                            ):
+                                continue
+                        except Exception:
+                            logger.warning(
+                                "Cache restore failed for %s, falling back to BigQuery",
+                                output_basename,
+                                exc_info=True,
+                            )
+
                     index_df, output_basename, schema, sql_query = (
                         self.execute_sql_query(str(file_path))
                     )
@@ -450,6 +530,22 @@ class IDCIndexDataManager:
                             )
                         # Save SQL query to file
                         self.save_sql_query(sql_query, output_basename, output_dir)
+
+                        if storage_client and sql_hash and output_dir:
+                            try:
+                                self._upload_to_cache(
+                                    storage_client,
+                                    gcs_cache_bucket,
+                                    sql_hash,
+                                    output_basename,
+                                    output_dir,
+                                )
+                            except Exception:
+                                logger.warning(
+                                    "Cache upload failed for %s",
+                                    output_basename,
+                                    exc_info=True,
+                                )
 
     def retrieve_latest_idc_release_version(self) -> int:
         """
@@ -496,6 +592,11 @@ if __name__ == "__main__":
         help="Output directory for generated files (default: current directory)",
     )
     parser.add_argument(
+        "--cache-bucket",
+        default=None,
+        help="GCS bucket name for caching generated parquet files (cache key = SHA256 of SQL file)",
+    )
+    parser.add_argument(
         "--retrieve-latest-idc-release-version",
         action="store_true",
         help="Retrieve and display the latest IDC release version",
@@ -513,6 +614,7 @@ if __name__ == "__main__":
             generate_compressed_csv=args.generate_csv_archive,
             generate_parquet=args.generate_parquet,
             output_dir=args.output_dir,
+            gcs_cache_bucket=args.cache_bucket,
         )
     elif args.retrieve_latest_idc_release_version:
         logging.basicConfig(level=logging.ERROR, force=True)
