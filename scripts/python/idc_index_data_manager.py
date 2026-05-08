@@ -453,7 +453,9 @@ class IDCIndexDataManager:
 
         storage_client = None
         if gcs_cache_bucket and generate_parquet and output_dir:
-            from google.cloud import storage  # noqa: PLC0415
+            from google.cloud import (  # noqa: PLC0415
+                storage,  # type: ignore[attr-defined]
+            )
 
             storage_client = storage.Client(project=self.project_id)
 
@@ -470,7 +472,7 @@ class IDCIndexDataManager:
                     file_path = Path(directory) / file_name
 
                     sql_hash = None
-                    if storage_client and output_dir:
+                    if storage_client and gcs_cache_bucket and output_dir:
                         sql_hash = self._compute_file_hash(str(file_path))
                         output_basename = file_path.stem
                         try:
@@ -531,7 +533,12 @@ class IDCIndexDataManager:
                         # Save SQL query to file
                         self.save_sql_query(sql_query, output_basename, output_dir)
 
-                        if storage_client and sql_hash and output_dir:
+                        if (
+                            storage_client
+                            and gcs_cache_bucket
+                            and sql_hash
+                            and output_dir
+                        ):
                             try:
                                 self._upload_to_cache(
                                     storage_client,
