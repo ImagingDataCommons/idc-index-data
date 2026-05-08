@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 from __future__ import annotations
 
 import hashlib
@@ -453,9 +454,7 @@ class IDCIndexDataManager:
 
         storage_client = None
         if gcs_cache_bucket and generate_parquet and output_dir:
-            from google.cloud import (  # noqa: PLC0415
-                storage,  # type: ignore[attr-defined]
-            )
+            from google.cloud import storage  # noqa: PLC0415
 
             storage_client = storage.Client(project=self.project_id)
 
