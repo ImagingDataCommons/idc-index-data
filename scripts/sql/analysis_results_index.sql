@@ -26,7 +26,7 @@ SELECT
   modalities,
   # description:
   # timestamp of the last update to the analysis results collection
-  SAFE_CAST(Updated AS STRING) AS Updated,
+  SAFE_CAST(Updated AS STRING) AS updated,
   # description:
   # license URL for the analysis results collection
   license_url,
@@ -38,7 +38,7 @@ SELECT
   license_short_name,
   # description:
   # detailed description of the analysis results collection
-  Description,
+  description,
   # description:
   # citation for the analysis results collection that should be used for acknowledgment
   citation
