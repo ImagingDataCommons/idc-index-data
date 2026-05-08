@@ -6,26 +6,26 @@ SELECT
   # collection level attributes
   # description:
   # short string with the identifier of the collection the series belongs to
-  ANY_VALUE(collection_id) AS collection_id,
+  ANY_VALUE(dicom_all.collection_id) AS collection_id,
   # description:
   # this string is not empty if the specific series is
   # part of an analysis results collection; analysis results can be added to a
   #  given collection over time
-  ANY_VALUE(analysis_result_id) AS analysis_result_id,
+  ANY_VALUE(dicom_all.analysis_result_id) AS analysis_result_id,
   # description:
   # identifier of the patient within the collection (DICOM attribute)
-  ANY_VALUE(PatientID) AS PatientID,
+  ANY_VALUE(dicom_all.PatientID) AS PatientID,
   # description:
   # unique identifier of the DICOM series (DICOM attribute)
-  SeriesInstanceUID,
+  dicom_all.SeriesInstanceUID,
   # description:
   # unique identifier of the DICOM study (DICOM attribute)
-  ANY_VALUE(StudyInstanceUID) AS StudyInstanceUID,
+  ANY_VALUE(dicom_all.StudyInstanceUID) AS StudyInstanceUID,
   # description:
   # Digital Object Identifier of the dataset that contains the given
   # series; follow this DOI to learn more about the activity that produced
   # this series
-  ANY_VALUE(source_DOI) AS source_DOI,
+  ANY_VALUE(dicom_all.source_DOI) AS source_DOI,
   # patient level attributes:
   # description:
   # age of the subject at the time of imaging (DICOM attribute)
@@ -147,28 +147,38 @@ SELECT
   COUNT(dicom_all.SOPInstanceUID) AS instanceCount,
   # description:
   # short name of the license that applies to this series
-  ANY_VALUE(license_short_name) as license_short_name,
+  ANY_VALUE(dicom_all.license_short_name) as license_short_name,
+  # description:
+  # IDC version when this series was first added to IDC
+  ANY_VALUE(aux.series_init_idc_version) AS series_init_idc_version,
+  # description:
+  # IDC version when this series was last updated in IDC
+  ANY_VALUE(aux.series_revised_idc_version) AS series_revised_idc_version,
   # download related attributes
   # description:
   # name of the AWS S3 bucket that contains the series
-  ANY_VALUE(aws_bucket)  AS aws_bucket,
+  ANY_VALUE(dicom_all.aws_bucket)  AS aws_bucket,
   # description:
   # unique identifier of the series within the IDC
-  ANY_VALUE(crdc_series_uuid) AS crdc_series_uuid,
+  ANY_VALUE(dicom_all.crdc_series_uuid) AS crdc_series_uuid,
   # series_aws_url will be phased out in favor of constructing URL from bucket+UUID
   # description:
   # public AWS S3 URL to download the series in bulk (each instance is a separate file)
-  ANY_VALUE(CONCAT(series_aws_url,"*")) AS series_aws_url,
+  ANY_VALUE(CONCAT(dicom_all.series_aws_url,"*")) AS series_aws_url,
   # description:
   # total size of the series in megabytes
-  SUM(SAFE_CAST(instance_size AS float64))/1000000. AS series_size_MB,
+  SUM(SAFE_CAST(dicom_all.instance_size AS float64))/1000000. AS series_size_MB,
 FROM
   `bigquery-public-data.idc_v24.dicom_all` AS dicom_all
 LEFT JOIN
   `bigquery-public-data.idc_v24.dicom_metadata_curated` AS dicom_curated
 ON
   dicom_all.SOPInstanceUID = dicom_curated.SOPInstanceUID
+LEFT JOIN
+  `bigquery-public-data.idc_v24.auxiliary_metadata` AS aux
+ON
+  dicom_all.SeriesInstanceUID = aux.SeriesInstanceUID
 GROUP BY
-  SeriesInstanceUID
+  dicom_all.SeriesInstanceUID
 ORDER BY
   collection_id, PatientID, StudyInstanceUID, SeriesInstanceUID
