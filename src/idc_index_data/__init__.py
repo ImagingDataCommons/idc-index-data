@@ -79,7 +79,7 @@ PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH: Path | None = _lookup(
     "idc_index_data/prior_versions_index.parquet"
 )
 
-# Build unified metadata dictionary for all 7 indices
+# Build unified metadata dictionary for all indices
 _ALL_INDICES = [
     "idc_index",
     "prior_versions_index",
@@ -94,6 +94,7 @@ _ALL_INDICES = [
     "contrast_index",
     "volume_geometry_index",
     "rtstruct_index",
+    "version_metadata_index",
 ]
 
 INDEX_METADATA: dict[str, dict[str, Path | dict[str, object] | str | None]] = {}
