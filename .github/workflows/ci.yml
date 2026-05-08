@@ -38,10 +38,18 @@ jobs:
         with:
           extra_args: --hook-stage manual --all-files
 
+      - name: Cache nox pylint virtualenv
+        uses: actions/cache@v4
+        with:
+          path: .nox/pylint
+          key:
+            nox-pylint-${{ runner.os }}-${{ hashFiles('pyproject.toml',
+            'noxfile.py') }}
+
       - name: Run PyLint
         run: |
           echo "::add-matcher::$GITHUB_WORKSPACE/.github/matchers/pylint.json"
-          pipx run nox -s pylint
+          pipx run nox -s pylint -r
 
   checks:
     name: Check Python ${{ matrix.python-version }} on ${{ matrix.runs-on }}
