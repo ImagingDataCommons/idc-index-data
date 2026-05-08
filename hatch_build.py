@@ -29,6 +29,9 @@ class IDCBuildHook(BuildHookInterface):
         "tcia_idc_subset.parquet",
         "volume_geometry_index.parquet",
         "rtstruct_index.parquet",
+        "ct_index.parquet",
+        "mr_index.parquet",
+        "pt_index.parquet",
     }
 
     def _prune_excluded_parquet_files(self) -> None:

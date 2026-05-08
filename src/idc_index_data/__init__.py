@@ -95,6 +95,9 @@ _ALL_INDICES = [
     "volume_geometry_index",
     "rtstruct_index",
     "version_metadata_index",
+    "ct_index",
+    "mr_index",
+    "pt_index",
 ]
 
 INDEX_METADATA: dict[str, dict[str, Path | dict[str, object] | str | None]] = {}
