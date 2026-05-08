@@ -5,8 +5,8 @@
 WITH aux_series AS (
   SELECT
     SeriesInstanceUID,
-    ANY_VALUE(series_init_idc_version) AS series_init_idc_version,
-    ANY_VALUE(series_revised_idc_version) AS series_revised_idc_version
+    MIN(series_init_idc_version) AS series_init_idc_version,
+    MAX(series_revised_idc_version) AS series_revised_idc_version
   FROM `bigquery-public-data.idc_v24.auxiliary_metadata`
   GROUP BY SeriesInstanceUID
 )
