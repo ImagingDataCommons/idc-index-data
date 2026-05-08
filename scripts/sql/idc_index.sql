@@ -157,10 +157,10 @@ SELECT
   # short name of the license that applies to this series
   ANY_VALUE(dicom_all.license_short_name) as license_short_name,
   # description:
-  # IDC version when this series was first added to IDC
+  # IDC data release version number when this series first appeared in IDC (integer, e.g., 1 for v1)
   ANY_VALUE(aux.series_init_idc_version) AS series_init_idc_version,
   # description:
-  # IDC version when this series was last updated in IDC
+  # IDC data release version number when this series was most recently revised in IDC (integer, e.g., 24 for v24)
   ANY_VALUE(aux.series_revised_idc_version) AS series_revised_idc_version,
   # download related attributes
   # description:
