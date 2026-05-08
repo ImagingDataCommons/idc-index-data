@@ -131,6 +131,11 @@ module = "idc_index_data._version"
 ignore_missing_imports = true
 
 
+[[tool.mypy.overrides]]
+module = "scripts.python.idc_index_data_manager"
+disable_error_code = ["attr-defined", "import-untyped"]
+
+
 [tool.ruff]
 src = ["src", "scripts"]
 
