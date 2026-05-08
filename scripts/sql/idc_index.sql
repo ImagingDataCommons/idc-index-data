@@ -2,6 +2,14 @@
 # This is the main metadata table provided by idc-index. Each row corresponds to a DICOM series, and contains
 # attributes at the collection, patient, study, and series levels. The table also contains download-related
 # attributes, such as the AWS S3 bucket and URL to download the series.
+WITH aux_series AS (
+  SELECT
+    SeriesInstanceUID,
+    ANY_VALUE(series_init_idc_version) AS series_init_idc_version,
+    ANY_VALUE(series_revised_idc_version) AS series_revised_idc_version
+  FROM `bigquery-public-data.idc_v24.auxiliary_metadata`
+  GROUP BY SeriesInstanceUID
+)
 SELECT
   # collection level attributes
   # description:
@@ -175,7 +183,7 @@ LEFT JOIN
 ON
   dicom_all.SOPInstanceUID = dicom_curated.SOPInstanceUID
 LEFT JOIN
-  `bigquery-public-data.idc_v24.auxiliary_metadata` AS aux
+  aux_series AS aux
 ON
   dicom_all.SeriesInstanceUID = aux.SeriesInstanceUID
 GROUP BY
