@@ -68,6 +68,12 @@ jobs:
             release_artifacts/idc_index.parquet \
             -o release_artifacts/tcia_idc_subset.parquet
 
+      - name: Add provenance metadata and SHA256 checksums
+        run: |
+          python scripts/python/add_parquet_provenance.py \
+            release_artifacts/ \
+            --version "$(git describe --tags --long)"
+
       - name: Report generated index sizes
         run:
           python scripts/python/report_index_sizes.py release_artifacts | tee -a
@@ -145,7 +151,7 @@ jobs:
       - name: Attach artifacts to release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "release_artifacts/*.parquet,release_artifacts/*.json,release_artifacts/*.sql"
+          artifacts: "release_artifacts/*.parquet,release_artifacts/*.json,release_artifacts/*.sql,release_artifacts/*.sha256"
           allowUpdates: true
           omitBodyDuringUpdate: true
 

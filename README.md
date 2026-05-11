@@ -85,6 +85,29 @@ For example:
 Replace `current` with a specific version tag (e.g. `23.5.0`) to pin to a
 particular release.
 
+### Integrity verification
+
+Each parquet file is accompanied by a SHA256 checksum sidecar
+(`<name>.parquet.sha256`) published alongside it. Use it to verify a downloaded
+file:
+
+```bash
+curl -O https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/idc_index.parquet
+curl -O https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts/idc_index.parquet.sha256
+sha256sum -c idc_index.parquet.sha256
+```
+
+Every parquet file also embeds the `idc-index-data` package version that
+generated it as Apache Parquet schema metadata under the key
+`idc_index_data_version`:
+
+```python
+import pyarrow.parquet as pq
+
+meta = pq.read_metadata("idc_index.parquet")
+print(meta.metadata[b"idc_index_data_version"])
+```
+
 ## Usage
 
 This package is intended to be used by the
