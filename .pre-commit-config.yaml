@@ -49,7 +49,7 @@ repos:
         exclude: ^scripts/python/compare_parquet\.py$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.20.2"
+    rev: "v2.0.0"
     hooks:
       - id: mypy
         files: src|tests
@@ -79,7 +79,7 @@ repos:
         exclude: .pre-commit-config.yaml
 
   - repo: https://github.com/henryiii/validate-pyproject-schema-store
-    rev: "2026.04.26"
+    rev: "2026.05.06"
     hooks:
       - id: validate-pyproject
 
