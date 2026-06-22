@@ -11,7 +11,7 @@ from __future__ import annotations
 import io
 
 import pytest
-import requests  # type: ignore[import-untyped]
+import requests
 
 GCS_BASE = (
     "https://storage.googleapis.com/idc-index-data-artifacts/current/release_artifacts"

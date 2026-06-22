@@ -130,6 +130,15 @@ disallow_incomplete_defs = true
 module = "idc_index_data._version"
 ignore_missing_imports = true
 
+# numpy>=2.3 ships PEP 695 `type` statements in its bundled stubs, which mypy
+# refuses to parse while type-checking against python_version 3.10. We don't
+# rely on numpy types directly (it is only pulled in transitively), so skip
+# following its stubs rather than pinning numpy back or raising python_version.
+[[tool.mypy.overrides]]
+module = "numpy.*"
+follow_imports = "skip"
+follow_imports_for_stubs = true
+
 
 [tool.ruff]
 src = ["src", "scripts"]
