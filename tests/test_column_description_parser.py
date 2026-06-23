@@ -125,6 +125,21 @@ FROM table
         )
         assert IDCIndexDataManager._extract_column_name("column AS alias,") == "alias"
 
+    def test_extract_column_name_backtick_quoted(self):
+        """Test extracting column name from backtick-quoted reserved words (e.g. Rows, Columns)."""
+        assert IDCIndexDataManager._extract_column_name("`Rows`,") == "Rows"
+        assert IDCIndexDataManager._extract_column_name("`Columns`,") == "Columns"
+        assert (
+            IDCIndexDataManager._extract_column_name("ANY_VALUE(`Rows`) AS `Rows`,")
+            == "Rows"
+        )
+        assert (
+            IDCIndexDataManager._extract_column_name(
+                "ANY_VALUE(`Columns`) AS `Columns`,"
+            )
+            == "Columns"
+        )
+
     def test_extract_column_name_complex(self):
         """Test extracting column name from complex expressions."""
         assert (
@@ -150,6 +165,24 @@ FROM table
         descriptions = IDCIndexDataManager.parse_column_descriptions(sql_query)
         assert "series_size_MB" in descriptions
         assert descriptions["series_size_MB"] == "total size of the series in megabytes"
+
+    def test_backtick_quoted_columns(self):
+        """Test parsing descriptions for backtick-quoted reserved-word columns (Rows, Columns)."""
+        sql_query = """
+SELECT
+  # description:
+  # number of pixel rows per image slice
+  ANY_VALUE(`Rows`) AS `Rows`,
+  # description:
+  # number of pixel columns per image slice
+  ANY_VALUE(`Columns`) AS `Columns`,
+FROM table
+"""
+        descriptions = IDCIndexDataManager.parse_column_descriptions(sql_query)
+        assert "Rows" in descriptions
+        assert descriptions["Rows"] == "number of pixel rows per image slice"
+        assert "Columns" in descriptions
+        assert descriptions["Columns"] == "number of pixel columns per image slice"
 
     def test_no_descriptions(self):
         """Test SQL query with no descriptions."""

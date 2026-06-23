@@ -222,21 +222,21 @@ class IDCIndexDataManager:
         column_def = column_def.strip().rstrip(",").strip()
 
         # Look for the last AS clause (to handle nested AS in CAST expressions)
-        # Use a regex that finds the rightmost AS followed by a word
-        as_matches = list(re.finditer(r"\bAS\b\s+(\w+)", column_def, re.IGNORECASE))
+        # Use a regex that finds the rightmost AS followed by a word (optionally backtick-quoted)
+        as_matches = list(re.finditer(r"\bAS\b\s+`?(\w+)`?", column_def, re.IGNORECASE))
         if as_matches:
             # Return the last match (rightmost AS clause)
             return as_matches[-1].group(1)
 
         # If no AS clause, try to get the column name
         # Remove function calls and get the last word before comma
-        # Handle cases like: column_name, or just column_name
+        # Handle cases like: column_name, or `column_name` (backtick-quoted reserved words)
         parts = column_def.split()
         if parts:
             # Get the last word that looks like an identifier
             for original_part in reversed(parts):
-                # Remove trailing punctuation
-                part = original_part.rstrip(",").strip()
+                # Remove trailing punctuation and backtick quoting
+                part = original_part.rstrip(",").strip().strip("`")
                 # Check if it's a valid identifier (word characters only)
                 if re.match(r"^\w+$", part):
                     return part
