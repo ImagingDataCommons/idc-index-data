@@ -49,7 +49,10 @@ SELECT
   # textual description of the study content (DICOM attribute)
   ANY_VALUE(StudyDescription) AS StudyDescription,
   # description:
-  # body part imaged (not applicable for SM series) (DICOM attribute)
+  # body part imaged (not applicable for SM series) (DICOM attribute). For derived
+  # series (SEG, RTSTRUCT) this reflects the source acquisition, not the segmented
+  # anatomy -- what was segmented is recorded in the seg_index table
+  # (SegmentedPropertyType_CodeMeanings) and in rtstruct_index.
   ANY_VALUE(dicom_curated.BodyPartExamined) AS BodyPartExamined,
   # series level attributes
   # description:
