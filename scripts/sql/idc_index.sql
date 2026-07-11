@@ -139,6 +139,17 @@ SELECT
     ELSE ERROR(CONCAT("Unmapped TransferSyntaxUID: ", TransferSyntaxUID, ". Please add a mapping."))
   END) AS transfer_syntax_name,
   # description:
+  # intended interpretation of the pixel data, e.g., MONOCHROME2 (grayscale),
+  # RGB or YBR_FULL_422 (color); NULL for non-image objects (e.g., SEG, SR,
+  # RTSTRUCT); comma-separated when a series contains instances with different
+  # values (DICOM attribute)
+  STRING_AGG(DISTINCT PhotometricInterpretation, "," ORDER BY PhotometricInterpretation) AS PhotometricInterpretation,
+  # description:
+  # data representation of pixel sample values: "0" for unsigned integers, "1"
+  # for signed integers; NULL for non-image objects; comma-separated when a
+  # series contains instances with different values (DICOM attribute)
+  STRING_AGG(DISTINCT CAST(PixelRepresentation AS STRING), "," ORDER BY CAST(PixelRepresentation AS STRING)) AS PixelRepresentation,
+  # description:
   # manufacturer of the equipment that produced the series (DICOM attribute)
   ANY_VALUE(Manufacturer) AS Manufacturer,
   # description:
