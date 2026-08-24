@@ -4,6 +4,10 @@ requires = [
   "hatch-vcs",
   "db-dtypes",
   "google-cloud-bigquery",
+  # Needed by the build hook when IDC_INDEX_DATA_CACHE_BUCKET is set, so that
+  # generated parquet files can be restored from the GCS cache instead of being
+  # regenerated from BigQuery.
+  "google-cloud-storage",
   "pandas",
   "pyarrow",
 ]
