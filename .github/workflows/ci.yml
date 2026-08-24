@@ -50,6 +50,12 @@ jobs:
         run: |
           echo "::add-matcher::$GITHUB_WORKSPACE/.github/matchers/pylint.json"
           pipx run nox -s pylint -r
+        env:
+          # `pipx run nox -s pylint` does `pip install .`, which runs the hatch
+          # build hook. PyLint only needs the sources, so blank out GCP_PROJECT
+          # (exported by the Authorize Google Cloud step) to make the hook skip
+          # index data generation entirely.
+          GCP_PROJECT: ""
 
   checks:
     name: Check Python ${{ matrix.python-version }} on ${{ matrix.runs-on }}
@@ -85,6 +91,10 @@ jobs:
 
       - name: Install package
         run: python -m pip install .[test]
+        env:
+          # The tests need the generated index data, so let the build hook restore
+          # it from the GCS cache instead of re-running every BigQuery query.
+          IDC_INDEX_DATA_CACHE_BUCKET: idc-index-data-cache
 
       - name: Test package
         run: >-
