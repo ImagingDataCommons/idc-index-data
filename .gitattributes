@@ -1,1 +1,7 @@
 .git_archival.txt  export-subst
+
+# The GCS parquet cache is keyed on the SHA256 of each .sql file's raw bytes.
+# GitHub's Windows runners check out with core.autocrlf=true, which would give
+# these files CRLF endings and a different hash than the LF versions that
+# populated the cache on Linux, missing the cache on every lookup.
+*.sql text eol=lf
