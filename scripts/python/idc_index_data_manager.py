@@ -313,7 +313,7 @@ class IDCIndexDataManager:
                 "Error occurred while executing SQL query from file: %s", file_path
             )
             logger.error(e)
-            raise e
+            raise
         query_job_result = self.client.query(sql_query).result()
         schema = query_job_result.schema  # Get schema from BigQuery QueryJob
         index_df = query_job_result.to_dataframe()
