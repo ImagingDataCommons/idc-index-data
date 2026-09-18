@@ -13,7 +13,15 @@ discoverable, browsable in the Data Studio viewer, queryable from the SQL
 Console, and citable at a pinned version. No pixel data is involved; users still
 fetch DICOM with the `idc-index` package.
 
-The pipeline is the `upload-to-hf` job in `.github/workflows/cd.yml`:
+There are two publishing paths, because the data and the prose describing it
+change on different schedules:
+
+| Workflow                     | Publishes                             | When                              |
+| ---------------------------- | ------------------------------------- | --------------------------------- |
+| `cd.yml`, `upload-to-hf` job | Parquet, schema sidecars and the card | Opt-in, per release               |
+| `hf-card.yml`                | The card alone                        | Whenever the card's prose changes |
+
+The release path is the `upload-to-hf` job in `.github/workflows/cd.yml`:
 
 ```
 generate-indices  ->  prepare_hf_payload.py  ->  generate_dataset_card.py  ->  hf upload  ->  hf repos tag create
@@ -25,6 +33,9 @@ generate-indices  ->  prepare_hf_payload.py  ->  generate_dataset_card.py  ->  h
 | `scripts/hf/generate_dataset_card.py` | Renders `README.md` (YAML front matter plus body) from the payload                  |
 | `hf upload`                           | Pushes Parquet, schema JSON and the card, authenticating via a Trusted Publisher    |
 | `hf repos tag create`                 | Tags the Hub repo with the release version                                          |
+
+The card-only path is `scripts/hf/refresh_dataset_card.py`, covered under
+[Refreshing the Card Between Releases](#refreshing-the-card-between-releases).
 
 ## Publishing Is Opt-In
 
@@ -162,6 +173,60 @@ load_dataset("hf_payload", split="train")  # the default config
 load_dataset("hf_payload", "seg_index", split="train")
 ```
 
+### Refreshing the Card Between Releases
+
+Expect to republish the card more often than a release is tagged. Wording, links
+and guidance get revised whenever someone reads the page with fresh eyes; the
+counts and schemas only move when a new index build is published. Going through
+`cd.yml` to fix a sentence would mean a BigQuery index build and 117 MB of
+Parquet rewritten into permanent Hub history.
+
+`scripts/hf/refresh_dataset_card.py` regenerates the card from the files
+**already on the Hub** and uploads `README.md` alone: row counts from the
+published Parquet footers, file sizes from the Hub API, the headline counts and
+license table from five columns of `idc_index` (~12 MB of a 73 MB file), and the
+version from the `idc_index_data_version` key embedded in it. That is why
+`generate_dataset_card.py` renders from a `CardFacts` rather than from a
+directory -- the payload directory and the Hub both produce one.
+
+Reading from the Hub is deliberate, not a convenience: the card must describe
+the bytes the Hub is serving, and that is the only copy guaranteed to be those
+bytes. The GCS mirror's `current/` folder is refreshed on every GitHub release
+while publishing here is opt-in per release, so a card built from GCS could
+report counts for data that is not on the Hub and cannot be loaded from it.
+
+Render and diff it without pushing:
+
+```bash
+python scripts/hf/refresh_dataset_card.py -o card.md
+```
+
+That prints the resolved version, the config count, and a unified diff against
+the published card -- or `already up to date` when the two match. Add `--push`
+to upload. Reading a private repo needs a token just as writing does; use a
+fine-grained token scoped to write on this one repo and delete it afterwards.
+
+Or dispatch the workflow, which needs no local token:
+
+```bash
+gh workflow run hf-card.yml -f push=true
+```
+
+Leave `push` off for a dry run: the diff lands in the run's step summary and the
+rendered card is attached as a build artifact.
+
+```{note}
+The refresh writes to `main` only. Tags are immutable snapshots of a release,
+card included, so `revision="24.2.2"` keeps serving the card as it stood when
+24.2.2 was published. After a refresh, `main` and the most recent tag hold the
+same Parquet files and different prose. That is what pinning a revision means,
+not a drift to repair.
+```
+
+`--revision` reads the facts from somewhere other than `main`, to see what the
+card would say at an older commit. Pushing is refused in that case, so a card
+rendered from a tag cannot land on `main` by accident.
+
 ## One-Time Hub Setup
 
 Needs the **Write** role in the `ImagingDataCommons` org.
@@ -184,10 +249,17 @@ Needs the **Write** role in the `ImagingDataCommons` org.
      execute on `refs/tags/<tag>`, so a branch pin makes the token exchange fail
      on exactly the runs that matter.
 
+3. Add a **second** entry, identical except `workflow` = `hf-card.yml`, for the
+   card-only refresh workflow. A repo holds a list of publishers and claims are
+   matched exactly, so every workflow file that publishes needs its own entry.
+   Without it, `hf auth token` in that workflow fails with `invalid_grant`.
+
 No `HF_TOKEN` secret is stored. The `hf` CLI detects GitHub Actions, exchanges
 the OIDC token for a one-hour, single-repo write token, and uses it; the job
 only sets `HF_OIDC_RESOURCE`, with the `datasets/` prefix because this is not a
-model repo.
+model repo. `cd.yml` lets `hf upload` do the exchange internally; `hf-card.yml`
+runs `hf auth token` to get the same token explicitly, because the refresh
+script reads the repo through the Python API before writing to it.
 
 ## Dry Run Before the First Real Publish
 
