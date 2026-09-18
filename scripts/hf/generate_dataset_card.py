@@ -28,6 +28,11 @@ IDC_PORTAL = "https://portal.imaging.datacommons.cancer.gov"
 # come from IDCClient.get_viewer_URL(), which picks OHIF or slim by modality and
 # keeps the URL shapes owned upstream.
 IDC_VISUALIZATION = "https://learn.canceridc.dev/portal/visualization"
+# The two open-source viewers IDC serves. Slim lives in the IDC org itself:
+# MGHComputationalPathology/slim 301s here and resolves to the same repo id, so
+# this is its home rather than a fork, whatever older documentation says.
+OHIF_REPO = "https://github.com/OHIF/Viewers"
+SLIM_REPO = "https://github.com/ImagingDataCommons/slim"
 # Index page for IDC's MCP server, agent skill and REST API. Link the index
 # rather than the server URL: the hosted server is in beta and its endpoint may
 # move, while this page is where IDC documents whatever the current one is.
@@ -406,9 +411,11 @@ anything. IDC streams the pixels to a zero-footprint browser viewer, and
 print(client.get_viewer_URL(seriesInstanceUID=sel["SeriesInstanceUID"][0]))
 ```
 
-It picks the viewer that fits the data -- OHIF for radiology, slim for slide
-microscopy -- and opens the enclosing study with your series selected. Passing
-a segmentation, as above, brings it up overlaid on the images it segments.
+It picks the viewer that fits the data --
+[OHIF]({OHIF_REPO}) for radiology,
+[Slim]({SLIM_REPO}) for slide microscopy --
+and opens the enclosing study with your series selected. Passing a
+segmentation, as above, brings it up overlaid on the images it segments.
 
 Query the catalog without downloading anything, using DuckDB:
 
