@@ -70,9 +70,15 @@ Excluded from the upload:
   `src/idc_index_data/__init__.py`, so it is not part of the package API, and it
   ships no schema sidecar. Its audience (joining IDC patients to GDC cases) is
   narrow enough that the GCS mirror covers it.
+- **`prior_versions_index.parquet`** -- catalogs series that are _no longer_ in
+  IDC, contradicting what the rest of the dataset claims to be: one row per
+  series in the current release. It is also one of the five indexes the PyPI
+  wheel ships, so every `idc-index` install already has it locally, and its
+  sidecar carries no column descriptions (see below), so it would have been the
+  one config the Hub could not document.
 
-Both are listed in `EXCLUDED_INDICES` in `prepare_hf_payload.py`, leaving 17
-configs.
+All three are listed in `EXCLUDED_INDICES` in `prepare_hf_payload.py`, leaving
+16 configs.
 
 ```{note}
 The specialized indexes are worth publishing even though users need
@@ -125,17 +131,18 @@ the `table_description` and per-column `description` values in each
 `*_schema.json`.
 
 The card documents the columns of `idc_index` in full and lists every other
-config with its column count and a link to its `*_schema.json`. Spelling out all
-17 column tables made the field section 63% of a 52 KB card, for tables most
+config with its column count and a link to its `*_schema.json`. Spelling out
+every column table made the field section 63% of a 52 KB card, for tables most
 visitors never open; the sidecars ship beside the Parquet files and say the same
 thing.
 
-One index needs a hand-written description, held in `UNDOCUMENTED_INDICES`:
-**`prior_versions_index`** has a sidecar, but with no descriptions at all,
-because `prior_versions_index.sql` is procedural SQL commented with `--` and the
-parser in `idc_index_data_manager.py` only recognises `# table-description:`.
-Fixing that upstream would populate the PyPI and GCS sidecars too, and this
-entry could then be dropped.
+Every published index has a `table_description` in its sidecar, so no
+hand-written descriptions are carried here. A new index whose SQL lacks a
+`# table-description:` comment renders an empty cell in the Indices table; fix
+it in the SQL rather than in the generator, so the PyPI and GCS sidecars get the
+text too. (`prior_versions_index.sql` is the known offender -- procedural SQL
+commented with `--`, which the parser in `idc_index_data_manager.py` does not
+recognise -- and it is excluded from the upload for other reasons anyway.)
 
 Preview the card without publishing:
 
@@ -150,7 +157,7 @@ directory:
 ```python
 from datasets import load_dataset, get_dataset_config_names
 
-get_dataset_config_names("hf_payload")  # 17 configs, idc_index first
+get_dataset_config_names("hf_payload")  # 16 configs, idc_index first
 load_dataset("hf_payload", split="train")  # the default config
 load_dataset("hf_payload", "seg_index", split="train")
 ```
@@ -205,6 +212,14 @@ for url in sorted({u.rstrip('.,;`') for u in
         code = getattr(exc, "code", exc.__class__.__name__)
     print(code, url)
 PY
+```
+
+```{note}
+Read the output rather than counting non-200s. A status code is not proof
+either way here: the IDC viewer is a single-page app whose host serves the
+working app shell with a **404** status for any client-routed path, and the Hub
+returns **401** for schema links while the dataset repo is still private.
+Confirm a suspicious URL in a browser before "fixing" it.
 ```
 
 To exercise the **CI path** specifically -- the OIDC token exchange, which a

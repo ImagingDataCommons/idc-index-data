@@ -37,7 +37,15 @@ import pyarrow.parquet as pq
 # _ALL_INDICES in src/idc_index_data/__init__.py -- ships no schema sidecar,
 # and serves a narrow audience (joining IDC patients to GDC cases). The GCS
 # mirror covers that case without adding an undocumented config here.
-EXCLUDED_INDICES = frozenset({"tcia_idc_subset", "gdc_idc_mapping"})
+#
+# prior_versions_index catalogs series that are *no longer* in IDC, which
+# contradicts what the rest of this dataset claims to be: one row per series in
+# the current release. It is also one of the five indices the PyPI wheel ships,
+# so every idc-index install already has it locally, and its sidecar carries no
+# column descriptions, so it would be the one config the Hub cannot document.
+EXCLUDED_INDICES = frozenset(
+    {"tcia_idc_subset", "gdc_idc_mapping", "prior_versions_index"}
+)
 
 # Refuse to publish unless these are present, so a partially failed
 # generate-indices run cannot quietly drop indices from the Hub via
@@ -47,11 +55,12 @@ REQUIRED_INDICES = frozenset(
         "idc_index",
         "collections_index",
         "analysis_results_index",
-        "prior_versions_index",
         "clinical_index",
         "version_metadata_index",
     }
 )
+# 16 indices are publishable today; this leaves room for one to be retired
+# upstream without failing a release, while still catching a partial run.
 MIN_EXPECTED_INDICES = 15
 
 # Uncompressed bytes per row group. Comfortably inside the Hub's 100-300 MB
