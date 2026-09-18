@@ -6,6 +6,22 @@ When asked to remember something or when learning reusable guidelines, save them
 in this file — not in local memory. This repo is used across multiple machines,
 so only repo-level persistence is reliable.
 
+## Never guess identifiers
+
+DOIs, PMIDs, accession numbers, UIDs, collection IDs, and URLs are opaque — they
+can be looked up, never inferred from context. A plausible-looking guess is
+worse than no answer, because it reads as authoritative and silently propagates
+into citations and published metadata.
+
+Resolve them from an authoritative source and verify the resolved record is the
+thing you meant:
+
+```bash
+curl -s "https://api.crossref.org/works/<doi>" | jq '.message.title, .message.author'
+```
+
+If it cannot be resolved, say so instead of supplying a value.
+
 ## Before committing
 
 Always run `pre-commit run --files <staged files>` before committing to catch

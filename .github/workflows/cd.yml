@@ -2,6 +2,17 @@ name: CD
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_to_hf:
+        description: "Publish the index artifacts to the Hugging Face Hub"
+        type: boolean
+        default: false
+      hf_version:
+        description:
+          "Version to publish under (defaults to the version embedded in the
+          artifacts; must be an exact release tag)"
+        type: string
+        default: ""
   pull_request:
   push:
     branches:
@@ -205,6 +216,79 @@ jobs:
           ]
           CORS
           gcloud storage buckets update gs://idc-index-data-artifacts --cors-file=/tmp/cors.json
+
+  upload-to-hf:
+    name: Upload artifacts to Hugging Face
+    needs: [generate-indices]
+    runs-on: ubuntu-latest
+    # Opt-in per release: dispatch this workflow from the release tag with
+    # publish_to_hf enabled. Deliberately not wired to `release: published`,
+    # which fires ~30 times a year, mostly for packaging-only patch releases.
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_to_hf
+
+    permissions:
+      id-token: write # for the Hugging Face Trusted Publisher token exchange
+      contents: read
+
+    env:
+      HF_REPO: ImagingDataCommons/idc-index-data
+      # `datasets/` prefix because this is not a model repo
+      HF_OIDC_RESOURCE: datasets/ImagingDataCommons/idc-index-data
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyarrow
+
+      - name: Download index artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: idc-index-artifacts
+          path: release_artifacts/
+
+      - name: Stage Hugging Face payload
+        id: payload
+        env:
+          HF_VERSION: ${{ inputs.hf_version }}
+        run: |
+          args=()
+          if [ -n "$HF_VERSION" ]; then
+            args+=(--version "$HF_VERSION")
+          fi
+          python scripts/hf/prepare_hf_payload.py release_artifacts \
+            --output-dir hf_payload "${args[@]}"
+          python -c "import json; print('version=' + json.load(open('hf_payload/hf_payload.json'))['version'])" \
+            >> "$GITHUB_OUTPUT"
+
+      - name: Generate dataset card
+        run: python scripts/hf/generate_dataset_card.py hf_payload
+
+      - name: Install the hf CLI
+        run: |
+          curl -LsSf https://hf.co/cli/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Upload to the Hub
+        run: |
+          hf upload "$HF_REPO" hf_payload . \
+            --repo-type dataset \
+            --include "*.parquet" \
+            --include "*_schema.json" \
+            --include "README.md" \
+            --delete "*.parquet" \
+            --delete "*_schema.json" \
+            --commit-message "idc-index-data ${{ steps.payload.outputs.version }}"
+
+      - name: Tag the release on the Hub
+        run: |
+          hf repos tag create "$HF_REPO" \
+            "${{ steps.payload.outputs.version }}" --repo-type dataset \
+            || echo "Tag ${{ steps.payload.outputs.version }} already exists"
 
   gcs-cors:
     name: GCS CORS regression tests
