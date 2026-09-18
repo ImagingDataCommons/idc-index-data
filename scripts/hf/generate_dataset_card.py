@@ -1,18 +1,26 @@
 """Generate the Hugging Face dataset card for the idc-index-data Hub repo.
 
-Reads a payload directory staged by ``prepare_hf_payload.py`` and renders
-``README.md``: YAML front matter (one config per Parquet file) plus the body
-sections. Counts, licenses and field tables are derived from the artifacts
+Renders ``README.md``: YAML front matter (one config per Parquet file) plus the
+body sections. Counts, licenses and field tables are derived from the artifacts
 themselves so the card cannot drift from the data it describes.
+
+Rendering reads a ``CardFacts``, not a directory, because the card is published
+on two different schedules. A release publishes it from the payload directory
+staged by ``prepare_hf_payload.py``; between releases, ``refresh_dataset_card``
+rebuilds the same facts from the Parquet files already on the Hub, so prose can
+be revised without re-running the index build.
 """
 
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
@@ -61,39 +69,49 @@ LICENSE_ORDER = ("cc-by-4.0", "cc-by-3.0", "cc-by-nc-4.0", "cc-by-nc-3.0")
 
 DEFAULT_CONFIG = "idc_index"
 
+# The only columns of idc_index the card needs. SeriesInstanceUID is
+# deliberately absent: the series count is the row count, and that column alone
+# is 14.7 MB compressed against 11.6 MB for all five of these together. It cost
+# nothing to read from a local payload, but refresh_dataset_card.py reads these
+# over the network from the Hub, where it would more than double the transfer.
+SUMMARY_COLUMNS = (
+    "collection_id",
+    "PatientID",
+    "StudyInstanceUID",
+    "license_short_name",
+    "series_size_MB",
+)
 
-def load_schemas(payload: Path) -> dict[str, dict[str, Any]]:
-    """Load every *_schema.json sidecar, keyed by index name."""
-    schemas = {}
-    for path in sorted(payload.glob("*_schema.json")):
-        name = path.name.removesuffix("_schema.json")
-        schemas[name] = json.loads(path.read_text())
-    return schemas
+
+@dataclasses.dataclass(frozen=True)
+class CardFacts:
+    """Everything the card renders, detached from where it was read.
+
+    ``rows`` and ``sizes`` are per config; ``sizes`` is bytes on disk (or on the
+    Hub, which stores the same bytes). ``idc`` is the (IDC version, release
+    date) pair from version_metadata_index, or None if that index is absent.
+    """
+
+    version: str
+    names: list[str]
+    schemas: dict[str, dict[str, Any]]
+    rows: dict[str, int]
+    sizes: dict[str, int]
+    summary: dict[str, Any]
+    idc: tuple[int, str] | None
 
 
-def index_names(payload: Path) -> list[str]:
+def order_names(names: Iterable[str]) -> list[str]:
     """Config names, default first, then alphabetical for stable diffs."""
-    names = sorted(path.stem for path in payload.glob("*.parquet"))
-    if DEFAULT_CONFIG in names:
-        names.remove(DEFAULT_CONFIG)
-        names.insert(0, DEFAULT_CONFIG)
-    return names
+    ordered = sorted(names)
+    if DEFAULT_CONFIG in ordered:
+        ordered.remove(DEFAULT_CONFIG)
+        ordered.insert(0, DEFAULT_CONFIG)
+    return ordered
 
 
-def summarize_index(payload: Path) -> dict[str, Any]:
+def summarize_index(table: pa.Table) -> dict[str, Any]:
     """Compute headline counts and the license breakdown from idc_index."""
-    table = pq.read_table(
-        payload / "idc_index.parquet",
-        columns=[
-            "collection_id",
-            "PatientID",
-            "StudyInstanceUID",
-            "SeriesInstanceUID",
-            "license_short_name",
-            "series_size_MB",
-        ],
-    )
-
     licenses = [
         (row["values"], row["counts"])
         for row in table.column("license_short_name").value_counts().to_pylist()
@@ -110,13 +128,8 @@ def summarize_index(payload: Path) -> dict[str, Any]:
     }
 
 
-def idc_version(payload: Path) -> tuple[int, str] | None:
+def latest_idc_version(table: pa.Table) -> tuple[int, str] | None:
     """Return the latest (IDC version, release date) from version_metadata_index."""
-    path = payload / "version_metadata_index.parquet"
-    if not path.is_file():
-        return None
-
-    table = pq.read_table(path)
     versions = table.column("idc_version").to_pylist()
     timestamps = table.column("version_timestamp").to_pylist()
     if not versions:
@@ -124,6 +137,35 @@ def idc_version(payload: Path) -> tuple[int, str] | None:
 
     latest = max(range(len(versions)), key=lambda i: versions[i])
     return versions[latest], timestamps[latest]
+
+
+def facts_from_payload(payload: Path, version: str) -> CardFacts:
+    """Gather the card's facts from a payload directory staged for upload."""
+    names = order_names(path.stem for path in payload.glob("*.parquet"))
+
+    schemas = {}
+    for path in sorted(payload.glob("*_schema.json")):
+        schemas[path.name.removesuffix("_schema.json")] = json.loads(path.read_text())
+
+    versions_path = payload / "version_metadata_index.parquet"
+    return CardFacts(
+        version=version,
+        names=names,
+        schemas=schemas,
+        rows={
+            name: pq.ParquetFile(payload / f"{name}.parquet").metadata.num_rows
+            for name in names
+        },
+        sizes={name: (payload / f"{name}.parquet").stat().st_size for name in names},
+        summary=summarize_index(
+            pq.read_table(payload / "idc_index.parquet", columns=list(SUMMARY_COLUMNS))
+        ),
+        idc=(
+            latest_idc_version(pq.read_table(versions_path))
+            if versions_path.is_file()
+            else None
+        ),
+    )
 
 
 # Rendered markdown hides HTML comments, so this is invisible on the dataset
@@ -185,9 +227,7 @@ def describe(name: str, schemas: dict[str, dict[str, Any]]) -> str:
     return ""
 
 
-def indices_section(
-    payload: Path, names: list[str], schemas: dict[str, dict[str, Any]]
-) -> str:
+def indices_section(facts: CardFacts) -> str:
     lines = [
         "## Indices",
         "",
@@ -200,14 +240,12 @@ def indices_section(
         "| Config | Rows | Size | Description |",
         "|---|---:|---:|---|",
     ]
-    for name in names:
-        path = payload / f"{name}.parquet"
-        rows = pq.ParquetFile(path).metadata.num_rows
-        size_mb = path.stat().st_size / 1e6
+    for name in facts.names:
+        size_mb = facts.sizes[name] / 1e6
         default = " (default)" if name == DEFAULT_CONFIG else ""
         lines.append(
-            f"| `{name}`{default} | {rows:,} | {size_mb:.1f} MB |"
-            f" {describe(name, schemas)} |"
+            f"| `{name}`{default} | {facts.rows[name]:,} | {size_mb:.1f} MB |"
+            f" {describe(name, facts.schemas)} |"
         )
     return "\n".join(lines)
 
@@ -364,11 +402,9 @@ Please also acknowledge IDC itself:
 ```"""
 
 
-def build_card(payload: Path, version: str) -> str:
-    schemas = load_schemas(payload)
-    names = index_names(payload)
-    summary = summarize_index(payload)
-    idc = idc_version(payload)
+def build_card(facts: CardFacts) -> str:
+    names, schemas, summary = facts.names, facts.schemas, facts.summary
+    version, idc = facts.version, facts.idc
     idc_label = (
         f"IDC v{idc[0]} (released {idc[1]})" if idc else "the current IDC release"
     )
@@ -514,7 +550,7 @@ downstream tools assume it exists. It carries no train/test meaning."""
                 GENERATED_BANNER,
                 summary_text,
                 quickstart,
-                indices_section(payload, names, schemas),
+                indices_section(facts),
                 note,
                 fields_section(names, schemas),
                 licensing_section(summary),
@@ -542,10 +578,10 @@ def main() -> None:
         msg = "No --version given and no hf_payload.json in the payload directory"
         raise SystemExit(msg)
 
-    card = build_card(args.payload, version)
+    card = build_card(facts_from_payload(args.payload, version))
     output = args.output or args.payload / "README.md"
     output.write_text(card)
-    print(f"Wrote {output} ({len(card):,} bytes)")
+    print(f"Wrote {output} ({output.stat().st_size:,} bytes)")
 
 
 if __name__ == "__main__":
