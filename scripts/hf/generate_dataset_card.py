@@ -28,6 +28,10 @@ IDC_PORTAL = "https://portal.imaging.datacommons.cancer.gov"
 # microscopy. The card points at IDCClient.get_viewer_URL(), which makes that
 # choice and keeps the URL shapes owned upstream.
 IDC_VIEWER = "https://viewer.imaging.datacommons.cancer.gov/"
+# Index page for IDC's MCP server, agent skill and REST API. Link the index
+# rather than the server URL: the hosted server is in beta and its endpoint may
+# move, while this page is where IDC documents whatever the current one is.
+IDC_AGENTS = "https://learn.canceridc.dev/ai-assistants/agents"
 
 CARD_TAGS = (
     "medical",
@@ -352,25 +356,6 @@ Please also acknowledge IDC itself:
   year    = {2023},
   doi     = {10.1148/rg.230180}
 }
-
-@article{fedorov2021idc,
-  title   = {NCI Imaging Data Commons},
-  author  = {Fedorov, Andrey and Longabaugh, William J. R. and Pot, David and
-             Clunie, David A. and Pieper, Steve and Aerts, Hugo J. W. L. and
-             Homeyer, Andr\\'e and Lewis, Rob and Akbarzadeh, Afshin and
-             Bontempi, Dennis and Clifford, William and Herrmann, Markus D. and
-             H\\"ofener, Henning and Octaviano, Igor and Osborne, Chad and
-             Paquette, Suzanne and Petts, James and Punzo, Davide and
-             Reyes, Madelyn and Schacherer, Daniela P. and Tian, Mi and
-             White, George and Ziegler, Erik and Shmulevich, Ilya and
-             Pihl, Todd and Wagner, Ulrike and Farahani, Keyvan and Kikinis, Ron},
-  journal = {Cancer Research},
-  volume  = {81},
-  number  = {16},
-  pages   = {4188--4193},
-  year    = {2021},
-  doi     = {10.1158/0008-5472.CAN-21-0950}
-}
 ```"""
 
 
@@ -461,6 +446,7 @@ and this card are ever written or removed by the publishing job."""
 
 - [IDC portal]({IDC_PORTAL}/explore/) -- browse the data and build cohorts interactively
 - [IDC viewer]({IDC_VIEWER}) -- view images in the browser; get per-series links with `IDCClient.get_viewer_URL()`
+- [IDC agent interfaces]({IDC_AGENTS}) -- search IDC, size a cohort and get a download command by asking: hosted MCP server, agent skill, or REST API
 - [IDC documentation](https://learn.canceridc.dev/)
 - [`idc-index` Python package](https://github.com/ImagingDataCommons/idc-index) -- the download client (`pip install idc-index`)
 - [`idc-index-data` on GitHub]({GITHUB_REPO}) -- how these tables are built (SQL included)
@@ -478,6 +464,9 @@ DICOM series in the NCI Imaging Data Commons; it does not contain pixel data.**
 Research Data Commons repository of publicly available cancer imaging data,
 co-located with analysis tools in the cloud. To explore it interactively
 instead, use the [IDC portal]({IDC_PORTAL}/explore/).
+To query IDC in plain language, point an AI assistant at its
+[agent interfaces]({IDC_AGENTS}) --
+a hosted MCP server, an agent skill, and a REST API over the same metadata.
 
 This catalog describes {idc_label}:
 **{summary["series"]:,} series** across {summary["studies"]:,} studies,
