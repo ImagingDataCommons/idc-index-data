@@ -23,11 +23,11 @@ GITHUB_REPO = "https://github.com/ImagingDataCommons/idc-index-data"
 GCS_MIRROR = "https://storage.googleapis.com/idc-index-data-artifacts"
 # imaging.datacommons.cancer.gov 301s here; link the destination directly.
 IDC_PORTAL = "https://portal.imaging.datacommons.cancer.gov"
-# Root only. Deep-link URLs are deliberately not hard-coded here, because the
-# right viewer depends on the modality -- OHIF for radiology, slim for
-# microscopy. The card points at IDCClient.get_viewer_URL(), which makes that
-# choice and keeps the URL shapes owned upstream.
-IDC_VIEWER = "https://viewer.imaging.datacommons.cancer.gov/"
+# Documentation, not the viewer itself: the viewer's root URL is an empty shell,
+# because a viewer URL is only meaningful with a study in it. Per-series links
+# come from IDCClient.get_viewer_URL(), which picks OHIF or slim by modality and
+# keeps the URL shapes owned upstream.
+IDC_VISUALIZATION = "https://learn.canceridc.dev/portal/visualization"
 # Index page for IDC's MCP server, agent skill and REST API. Link the index
 # rather than the server URL: the hosted server is in beta and its endpoint may
 # move, while this page is where IDC documents whatever the current one is.
@@ -398,12 +398,17 @@ Downloads come directly from IDC's public AWS and GCS buckets at no cost to you.
 What lands on disk is DICOM; read it with [pydicom](https://pydicom.github.io/)
 or [highdicom](https://highdicom.readthedocs.io/).
 
-To look at a series before downloading it, get a viewer link for it. This picks
-the right viewer for the modality -- OHIF for radiology, slim for microscopy:
+Every series in this catalog can also be looked at without downloading
+anything. IDC streams the pixels to a zero-footprint browser viewer, and
+`get_viewer_URL` builds a link to any series you have selected:
 
 ```python
 print(client.get_viewer_URL(seriesInstanceUID=sel["SeriesInstanceUID"][0]))
 ```
+
+It picks the viewer that fits the data -- OHIF for radiology, slim for slide
+microscopy -- and opens the enclosing study with your series selected. Passing
+a segmentation, as above, brings it up overlaid on the images it segments.
 
 Query the catalog without downloading anything, using DuckDB:
 
@@ -445,7 +450,7 @@ and this card are ever written or removed by the publishing job."""
     links = f"""## Links
 
 - [IDC portal]({IDC_PORTAL}/explore/) -- browse the data and build cohorts interactively
-- [IDC viewer]({IDC_VIEWER}) -- view images in the browser; get per-series links with `IDCClient.get_viewer_URL()`
+- [Visualizing IDC images]({IDC_VISUALIZATION}) -- how the browser viewers work; get a link to any series with `IDCClient.get_viewer_URL()`
 - [IDC agent interfaces]({IDC_AGENTS}) -- search IDC, size a cohort and get a download command by asking: hosted MCP server, agent skill, or REST API
 - [IDC documentation](https://learn.canceridc.dev/)
 - [`idc-index` Python package](https://github.com/ImagingDataCommons/idc-index) -- the download client (`pip install idc-index`)
@@ -464,6 +469,8 @@ DICOM series in the NCI Imaging Data Commons; it does not contain pixel data.**
 Research Data Commons repository of publicly available cancer imaging data,
 co-located with analysis tools in the cloud. To explore it interactively
 instead, use the [IDC portal]({IDC_PORTAL}/explore/).
+Without downloading anything, any image in IDC can be
+[viewed in the browser]({IDC_VISUALIZATION}).
 To query IDC in plain language, point an AI assistant at its
 [agent interfaces]({IDC_AGENTS}) --
 a hosted MCP server, an agent skill, and a REST API over the same metadata.
