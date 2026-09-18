@@ -65,8 +65,24 @@ Excluded from the upload:
   browser. The version is embedded in the Parquet metadata anyway.
 - **`tcia_idc_subset.parquet`** -- a strict column projection of `idc_index`
   (identical rows; all six of its columns are already there). It would add 45 MB
-  per release and a confusing near-duplicate config. See `EXCLUDED_INDICES` in
-  `prepare_hf_payload.py`.
+  per release and a confusing near-duplicate config.
+- **`gdc_idc_mapping.parquet`** -- absent from `_ALL_INDICES` in
+  `src/idc_index_data/__init__.py`, so it is not part of the package API, and it
+  ships no schema sidecar. Its audience (joining IDC patients to GDC cases) is
+  narrow enough that the GCS mirror covers it.
+
+Both are listed in `EXCLUDED_INDICES` in `prepare_hf_payload.py`, leaving 17
+configs.
+
+```{note}
+The specialized indexes are worth publishing even though users need
+`idc-index` to download DICOM. The PyPI wheel ships only five of them --
+`idc_index`, `prior_versions_index`, `collections_index`,
+`analysis_results_index` and `version_metadata_index`. The other twelve are
+looked up with `optional=True` and resolve to `None`; they are fetched on
+demand from the GCS mirror. On the Hub they become directly queryable, which is
+a bigger gain than for `idc_index`, the one file every install already has.
+```
 
 ### Why the Parquet Files Are Repacked
 
@@ -108,15 +124,18 @@ the artifacts, so the card cannot drift from the data. Descriptions come from
 the `table_description` and per-column `description` values in each
 `*_schema.json`.
 
-Two indexes need hand-written descriptions, held in `UNDOCUMENTED_INDICES`:
+The card documents the columns of `idc_index` in full and lists every other
+config with its column count and a link to its `*_schema.json`. Spelling out all
+17 column tables made the field section 63% of a 52 KB card, for tables most
+visitors never open; the sidecars ship beside the Parquet files and say the same
+thing.
 
-- **`gdc_idc_mapping`** -- no sidecar; produced by
-  `scripts/gdc/gdc_parquet_generator.py`, not from a commented SQL file.
-- **`prior_versions_index`** -- has a sidecar, but with no descriptions at all,
-  because `prior_versions_index.sql` is procedural SQL commented with `--` and
-  the parser in `idc_index_data_manager.py` only recognises
-  `# table-description:`. Fixing that upstream would populate the PyPI and GCS
-  sidecars too, and these entries could then be dropped.
+One index needs a hand-written description, held in `UNDOCUMENTED_INDICES`:
+**`prior_versions_index`** has a sidecar, but with no descriptions at all,
+because `prior_versions_index.sql` is procedural SQL commented with `--` and the
+parser in `idc_index_data_manager.py` only recognises `# table-description:`.
+Fixing that upstream would populate the PyPI and GCS sidecars too, and this
+entry could then be dropped.
 
 Preview the card without publishing:
 
@@ -131,7 +150,7 @@ directory:
 ```python
 from datasets import load_dataset, get_dataset_config_names
 
-get_dataset_config_names("hf_payload")  # 18 configs, idc_index first
+get_dataset_config_names("hf_payload")  # 17 configs, idc_index first
 load_dataset("hf_payload", split="train")  # the default config
 load_dataset("hf_payload", "seg_index", split="train")
 ```

@@ -18,6 +18,7 @@ import pyarrow.parquet as pq
 
 PRETTY_NAME = "NCI Imaging Data Commons (IDC) index"
 HUB_REPO = "ImagingDataCommons/idc-index-data"
+HUB_URL = f"https://huggingface.co/datasets/{HUB_REPO}"
 GITHUB_REPO = "https://github.com/ImagingDataCommons/idc-index-data"
 GCS_MIRROR = "https://storage.googleapis.com/idc-index-data-artifacts"
 
@@ -44,18 +45,11 @@ LICENSE_ORDER = ("cc-by-4.0", "cc-by-3.0", "cc-by-nc-4.0", "cc-by-nc-3.0")
 
 # Descriptions for indices the schema sidecars do not document.
 #
-# gdc_idc_mapping has no sidecar at all: it is produced by
-# scripts/gdc/gdc_parquet_generator.py rather than from a commented SQL file.
-#
 # prior_versions_index has a sidecar with no descriptions, because
 # prior_versions_index.sql is procedural SQL written with `--` comments and the
 # parser in idc_index_data_manager.py only recognises `# table-description:`.
 # Fixing that upstream would also populate the PyPI and GCS sidecars.
 UNDOCUMENTED_INDICES = {
-    "gdc_idc_mapping": (
-        "Mapping between IDC patients and Genomic Data Commons (GDC) cases, for "
-        "linking imaging to genomic data."
-    ),
     "prior_versions_index": (
         "One row per DICOM series that was present in an earlier IDC version but "
         "is no longer in the current one. `min_idc_version` and `max_idc_version` "
@@ -213,31 +207,74 @@ def indices_section(
     return "\n".join(lines)
 
 
+def column_table(schema: dict[str, Any]) -> list[str]:
+    """Render a schema's columns as a markdown table."""
+    lines = ["| Column | Type | Description |", "|---|---|---|"]
+    for column in schema.get("columns", []):
+        description = " ".join((column.get("description") or "").split())
+        lines.append(
+            f"| `{column['name']}` | {column.get('type', '')} | {description} |"
+        )
+    return lines
+
+
 def fields_section(names: list[str], schemas: dict[str, dict[str, Any]]) -> str:
+    """Document the default config in full; point the rest at their sidecars.
+
+    Spelling out every column of every index made the card three times longer
+    than the part anyone reads, for tables most visitors never open. The
+    sidecars ship next to the Parquet files and say the same thing.
+    """
     lines = ["## Data fields", ""]
-    for name in names:
+
+    default_schema = schemas.get(DEFAULT_CONFIG)
+    if default_schema is not None:
+        lines += [
+            f"Columns of `{DEFAULT_CONFIG}`, the default config:",
+            "",
+            *column_table(default_schema),
+            "",
+        ]
+
+    others = [name for name in names if name != DEFAULT_CONFIG]
+    if not others:
+        return "\n".join(lines).rstrip()
+
+    lines += [
+        (
+            "Every other config is described by a `<config>_schema.json` sidecar"
+            " in this repository, carrying the same table and column"
+            " descriptions:"
+        ),
+        "",
+        "| Config | Columns | Schema |",
+        "|---|---:|---|",
+    ]
+    for name in others:
         schema = schemas.get(name)
         if schema is None:
-            note = UNDOCUMENTED_INDICES.get(
-                name, "No schema sidecar is published for this index."
-            )
-            lines += [f"<details><summary><code>{name}</code></summary>", "", note, ""]
-            lines += ["</details>", ""]
+            lines.append(f"| `{name}` | -- | no sidecar published |")
             continue
+        count = len(schema.get("columns", []))
+        sidecar = f"{name}_schema.json"
+        lines.append(
+            f"| `{name}` | {count} | [`{sidecar}`]({HUB_URL}/blob/main/{sidecar}) |"
+        )
 
-        columns = schema.get("columns", [])
-        lines += [
-            f"<details><summary><code>{name}</code> ({len(columns)} columns)</summary>",
-            "",
-            "| Column | Type | Description |",
-            "|---|---|---|",
-        ]
-        for column in columns:
-            description = " ".join((column.get("description") or "").split())
-            lines.append(
-                f"| `{column['name']}` | {column.get('type', '')} | {description} |"
-            )
-        lines += ["", "</details>", ""]
+    lines += [
+        "",
+        "They are plain JSON, so you can read one without downloading the data:",
+        "",
+        "```python",
+        "import json, urllib.request",
+        "",
+        f'url = "{HUB_URL}/resolve/main/seg_index_schema.json"',
+        "schema = json.load(urllib.request.urlopen(url))",
+        'print(schema["table_description"])',
+        'for column in schema["columns"]:',
+        '    print(column["name"], "--", column.get("description", ""))',
+        "```",
+    ]
     return "\n".join(lines).rstrip()
 
 
