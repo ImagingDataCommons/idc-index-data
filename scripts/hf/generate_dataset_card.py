@@ -21,6 +21,13 @@ HUB_REPO = "ImagingDataCommons/idc-index-data"
 HUB_URL = f"https://huggingface.co/datasets/{HUB_REPO}"
 GITHUB_REPO = "https://github.com/ImagingDataCommons/idc-index-data"
 GCS_MIRROR = "https://storage.googleapis.com/idc-index-data-artifacts"
+# imaging.datacommons.cancer.gov 301s here; link the destination directly.
+IDC_PORTAL = "https://portal.imaging.datacommons.cancer.gov"
+# Root only. Deep-link URLs are deliberately not hard-coded here, because the
+# right viewer depends on the modality -- OHIF for radiology, slim for
+# microscopy. The card points at IDCClient.get_viewer_URL(), which makes that
+# choice and keeps the URL shapes owned upstream.
+IDC_VIEWER = "https://viewer.imaging.datacommons.cancer.gov/"
 
 CARD_TAGS = (
     "medical",
@@ -42,23 +49,6 @@ LICENSE_IDS = {
     "CC BY-NC 3.0": "cc-by-nc-3.0",
 }
 LICENSE_ORDER = ("cc-by-4.0", "cc-by-3.0", "cc-by-nc-4.0", "cc-by-nc-3.0")
-
-# Descriptions for indices the schema sidecars do not document.
-#
-# prior_versions_index has a sidecar with no descriptions, because
-# prior_versions_index.sql is procedural SQL written with `--` comments and the
-# parser in idc_index_data_manager.py only recognises `# table-description:`.
-# Fixing that upstream would also populate the PyPI and GCS sidecars.
-UNDOCUMENTED_INDICES = {
-    "prior_versions_index": (
-        "One row per DICOM series that was present in an earlier IDC version but "
-        "is no longer in the current one. `min_idc_version` and `max_idc_version` "
-        "give the range of IDC versions the series appeared in, and the bucket and "
-        "URL columns let you retrieve it. Use this to resolve series referenced by "
-        "older work that the current release no longer indexes. Column-level "
-        "descriptions are not available upstream for this index."
-    ),
-}
 
 DEFAULT_CONFIG = "idc_index"
 
@@ -173,11 +163,17 @@ def front_matter(names: list[str], summary: dict[str, Any]) -> str:
 
 
 def describe(name: str, schemas: dict[str, dict[str, Any]]) -> str:
-    """One-line description of an index, from its sidecar or the fallback table."""
+    """One-line description of an index, from its schema sidecar.
+
+    Every published index currently has one. A new index whose SQL lacks a
+    `# table-description:` comment shows an empty cell here; fix it upstream in
+    the SQL rather than hard-coding the text, so the PyPI and GCS sidecars get
+    it too.
+    """
     schema = schemas.get(name)
     if schema and schema.get("table_description"):
         return " ".join(schema["table_description"].split())
-    return UNDOCUMENTED_INDICES.get(name, "")
+    return ""
 
 
 def indices_section(
@@ -389,7 +385,13 @@ def build_card(payload: Path, version: str) -> str:
 
     quickstart = f'''## Quickstart
 
-Filter the catalog, then fetch the imaging data with `idc-index`:
+```bash
+pip install datasets idc-index
+```
+
+`datasets` reads this catalog;
+[`idc-index`](https://pypi.org/project/idc-index/) is the client that downloads
+the DICOM files it points at. Filter here, download there:
 
 ```python
 from datasets import load_dataset
@@ -401,7 +403,8 @@ sel = idx.filter(
 
 from idc_index import IDCClient
 
-IDCClient().download_from_selection(
+client = IDCClient()
+client.download_from_selection(
     seriesInstanceUID=sel["SeriesInstanceUID"], downloadDir="./idc_data"
 )
 ```
@@ -410,7 +413,14 @@ Downloads come directly from IDC's public AWS and GCS buckets at no cost to you.
 What lands on disk is DICOM; read it with [pydicom](https://pydicom.github.io/)
 or [highdicom](https://highdicom.readthedocs.io/).
 
-Query it without downloading anything, using DuckDB:
+To look at a series before downloading it, get a viewer link for it. This picks
+the right viewer for the modality -- OHIF for radiology, slim for microscopy:
+
+```python
+print(client.get_viewer_URL(seriesInstanceUID=sel["SeriesInstanceUID"][0]))
+```
+
+Query the catalog without downloading anything, using DuckDB:
 
 ```sql
 SELECT collection_id, COUNT(*) AS series, SUM(series_size_MB) / 1e6 AS size_TB
@@ -449,9 +459,10 @@ and this card are ever written or removed by the publishing job."""
 
     links = f"""## Links
 
-- [IDC portal](https://imaging.datacommons.cancer.gov/) -- browse and build cohorts
+- [IDC portal]({IDC_PORTAL}/explore/) -- browse the data and build cohorts interactively
+- [IDC viewer]({IDC_VIEWER}) -- view images in the browser; get per-series links with `IDCClient.get_viewer_URL()`
 - [IDC documentation](https://learn.canceridc.dev/)
-- [`idc-index` Python package](https://github.com/ImagingDataCommons/idc-index) -- the download client
+- [`idc-index` Python package](https://github.com/ImagingDataCommons/idc-index) -- the download client (`pip install idc-index`)
 - [`idc-index-data` on GitHub]({GITHUB_REPO}) -- how these tables are built (SQL included)
 - [GCS mirror of the release artifacts]({GCS_MIRROR}?prefix=current/release_artifacts/)
   -- fetch a single file directly, e.g.
@@ -463,9 +474,12 @@ and this card are ever written or removed by the publishing job."""
 **This dataset is a catalog. It contains metadata and cloud locations for every
 DICOM series in the NCI Imaging Data Commons; it does not contain pixel data.**
 
-[IDC](https://imaging.datacommons.cancer.gov/) is an NCI Cancer Research Data
-Commons repository of publicly available cancer imaging data, co-located with
-analysis tools in the cloud. This catalog describes {idc_label}:
+[IDC]({IDC_PORTAL}) is an NCI Cancer
+Research Data Commons repository of publicly available cancer imaging data,
+co-located with analysis tools in the cloud. To explore it interactively
+instead, use the [IDC portal]({IDC_PORTAL}/explore/).
+
+This catalog describes {idc_label}:
 **{summary["series"]:,} series** across {summary["studies"]:,} studies,
 {summary["patients"]:,} patients and {summary["collections"]} collections,
 totalling **{summary["size_tb"]:.1f} TB** of imaging data.
