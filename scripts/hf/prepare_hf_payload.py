@@ -32,7 +32,12 @@ import pyarrow.parquet as pq
 # count, and every one of its six columns is already in idc_index. On the Hub
 # it would cost 45 MB per release and present a near-duplicate config with no
 # schema sidecar to document it.
-EXCLUDED_INDICES = frozenset({"tcia_idc_subset"})
+#
+# gdc_idc_mapping is not part of the package API either -- it is absent from
+# _ALL_INDICES in src/idc_index_data/__init__.py -- ships no schema sidecar,
+# and serves a narrow audience (joining IDC patients to GDC cases). The GCS
+# mirror covers that case without adding an undocumented config here.
+EXCLUDED_INDICES = frozenset({"tcia_idc_subset", "gdc_idc_mapping"})
 
 # Refuse to publish unless these are present, so a partially failed
 # generate-indices run cannot quietly drop indices from the Hub via
