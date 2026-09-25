@@ -21,9 +21,10 @@ folder is refreshed on every GitHub release, while publishing here is opt-in per
 release, so a card built from GCS could report counts for data that is not on
 the Hub and cannot be loaded from it.
 
-Reading a private repo, and pushing to a public one, both need a token. In CI
-the Trusted Publisher exchange provides it; locally, use a fine-grained token
-scoped to write on this one repo and delete it afterwards.
+The upload always needs a token; reading needs one too while the repo is
+private, and stops needing one once it is public. In CI the Trusted Publisher
+exchange provides it; locally, use a fine-grained token scoped to write on this
+one repo and delete it afterwards.
 """
 
 from __future__ import annotations
