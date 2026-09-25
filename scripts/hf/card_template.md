@@ -71,8 +71,9 @@ client.download_from_selection(
 ```
 
 Downloads come directly from IDC's public AWS and GCS buckets at no cost to you.
-What lands on disk is DICOM; read it with [pydicom](https://pydicom.github.io/)
-or [highdicom](https://highdicom.readthedocs.io/).
+What lands on disk is DICOM;
+[Loading images as tensors](#loading-images-as-tensors) below turns it into
+arrays.
 
 Every series in this catalog can also be looked at without downloading anything.
 IDC streams the pixels to a zero-footprint browser viewer, and `get_viewer_URL`
@@ -97,6 +98,138 @@ GROUP BY 1 ORDER BY size_TB DESC LIMIT 10;
 
 The same queries run in the **SQL Console** tab on this page, with no local
 setup.
+
+## Loading images as tensors
+
+A DICOM series is not an array yet. For CT, MR and PET it is usually one file
+per slice. The slices must be ordered by their position in space, not by file
+name, and their stored values rescaled to physical units, such as Hounsfield
+units for CT. Not every series is a volume at all: localizers, uneven slice
+spacing and gantry tilt are all common.
+
+[highdicom](https://highdicom.readthedocs.io/) handles this, and returns a
+`Volume` that keeps voxel spacing and the patient-space affine next to the
+array. The examples below were tested with highdicom 0.28.
+
+```bash
+pip install "highdicom>=0.28" duckdb idc-index torch
+```
+
+Start in the catalog. `volume_geometry_index` flags every CT, MR and PET series
+whose slices form a regularly spaced 3D grid, so series that won't load as a
+volume are never downloaded:
+
+```python
+import duckdb
+
+hf = "hf://datasets/{{hub_repo}}"
+query = f"""
+    SELECT SeriesInstanceUID
+    FROM '{hf}/idc_index.parquet'
+    JOIN '{hf}/volume_geometry_index.parquet' USING (SeriesInstanceUID)
+    WHERE collection_id = 'nsclc_radiomics' AND Modality = 'CT'
+      AND regularly_spaced_3d_volume
+    LIMIT 3
+"""
+uids = [row[0] for row in duckdb.sql(query).fetchall()]
+```
+
+Download each series into its own directory, then load it:
+
+```python
+from pathlib import Path
+
+import highdicom as hd
+import numpy as np
+import pydicom
+import torch
+from idc_index import IDCClient
+
+client = IDCClient()
+client.download_from_selection(
+    seriesInstanceUID=uids, downloadDir="idc_data", dirTemplate="%SeriesInstanceUID"
+)
+
+
+def load_volume(uid):
+    files = Path("idc_data", uid).glob("*.dcm")
+    return hd.get_volume_from_series(
+        [pydicom.dcmread(f) for f in files], dtype=np.float32
+    )
+
+
+vol = load_volume(uids[0])
+image = torch.from_numpy(vol.array)  # (slices, rows, columns), in HU
+print(image.shape, vol.spacing)  # spacing in mm, same axis order
+```
+
+`get_volume_from_series` raises `ValueError` for a series that is not a regular
+grid. Those are the series the geometry filter above leaves out. Pass `dtype`
+explicitly; the default is `float64`.
+
+### Segmentations
+
+`seg_index` has a row for each segmentation (DICOM SEG) series, and
+`segmented_SeriesInstanceUID` names the image series it segments. Download both
+and put the mask on the image's grid:
+
+```python
+query = f"""
+    SELECT s.SeriesInstanceUID, s.segmented_SeriesInstanceUID
+    FROM '{hf}/seg_index.parquet' s
+    JOIN '{hf}/idc_index.parquet' i
+      ON i.SeriesInstanceUID = s.segmented_SeriesInstanceUID
+    JOIN '{hf}/volume_geometry_index.parquet' g
+      ON g.SeriesInstanceUID = s.segmented_SeriesInstanceUID
+    WHERE i.collection_id = 'nsclc_radiomics' AND g.regularly_spaced_3d_volume
+    LIMIT 1
+"""
+seg_uid, image_uid = duckdb.sql(query).fetchone()
+client.download_from_selection(
+    seriesInstanceUID=[seg_uid, image_uid],
+    downloadDir="idc_data",
+    dirTemplate="%SeriesInstanceUID",
+)
+
+ct = load_volume(image_uid)
+seg = hd.seg.segread(next(Path("idc_data", seg_uid).glob("*.dcm")))
+labels = seg.get_volume()  # one channel per segment
+if not labels.geometry_equal(ct, tol=1e-3):
+    labels = labels.match_geometry(ct, tol=1e-3)
+
+image = torch.from_numpy(ct.array)
+mask = torch.from_numpy(np.ascontiguousarray(labels.array))  # (..., segments)
+print([s.SegmentLabel for s in seg.SegmentSequence])
+```
+
+A segmentation often covers fewer slices than its image, or stores them in the
+opposite order; `match_geometry` pads and flips it onto the image grid. That
+flip returns a view with negative strides, which `torch.from_numpy` rejects,
+hence `np.ascontiguousarray`. The loose `tol` absorbs rounding in stored
+positions, and the `geometry_equal` check sidesteps a
+[highdicom 0.28 bug](https://github.com/ImagingDataCommons/highdicom/issues/462)
+in `match_geometry` when the grids already agree.
+
+Segments can overlap, so the mask keeps one channel per segment.
+`seg.get_volume(combine_segments=True, relabel=True)` gives a single label map
+instead, and raises `RuntimeError` when segments overlap.
+
+### Training and other image types
+
+To feed a `DataLoader`, call `load_volume` from a `torch.utils.data.Dataset`.
+Volumes differ in shape, so bring them to a common one before batching, for
+example with `vol.pad_or_crop_to_spatial_shape((64, 256, 256))` or by
+resampling.
+
+- **Radiographs and mammograms** (CR, DX, MG) are one 2D image per file:
+  `hd.imread(path).get_frame(1)`.
+- **Slide microscopy** (SM) is a multi-resolution pyramid with one file per
+  level, and the full-resolution level is usually too large for one array. Read
+  a region of one level with `hd.imread(path).get_total_pixel_matrix()`, whose
+  `row_start`, `row_end`, `column_start` and `column_end` bounds are 1-based,
+  end excluded. `sm_instance_index` gives each file's `TotalPixelMatrixRows`,
+  `TotalPixelMatrixColumns` and `PixelSpacing_0`, so you can pick the level
+  before downloading.
 
 ## Indices
 
