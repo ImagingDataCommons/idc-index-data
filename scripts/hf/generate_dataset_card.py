@@ -4,11 +4,21 @@ Renders ``README.md``: YAML front matter (one config per Parquet file) plus the
 body sections. Counts, licenses and field tables are derived from the artifacts
 themselves so the card cannot drift from the data it describes.
 
+The wording is not here. It lives in ``card_template.md`` next to this file, as
+plain Markdown with ``{{placeholder}}`` tokens where the generated values go, so
+revising a sentence does not mean editing Python. This module computes the
+values, renders the tables, and substitutes them into that template.
+
 Rendering reads a ``CardFacts``, not a directory, because the card is published
 on two different schedules. A release publishes it from the payload directory
 staged by ``prepare_hf_payload.py``; between releases, ``refresh_dataset_card``
 rebuilds the same facts from the Parquet files already on the Hub, so prose can
 be revised without re-running the index build.
+
+The YAML front matter stays in Python rather than moving into the template. It
+carries no prose to review -- a license list and a config list, both derived
+from the artifacts -- and a template holding a partial YAML block would not
+parse as the front matter it becomes.
 """
 
 from __future__ import annotations
@@ -16,6 +26,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import json
+import re
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -23,6 +34,8 @@ from typing import Any
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
+
+TEMPLATE = Path(__file__).parent / "card_template.md"
 
 PRETTY_NAME = "NCI Imaging Data Commons (IDC) index"
 HUB_REPO = "ImagingDataCommons/idc-index-data"
@@ -81,6 +94,16 @@ SUMMARY_COLUMNS = (
     "license_short_name",
     "series_size_MB",
 )
+
+# A lowercase identifier only, so the pattern cannot match the braces in the
+# card's BibTeX block, where `{{Protected Title}}` is idiomatic.
+PLACEHOLDER_RE = re.compile(r"\{\{([a-z_][a-z0-9_]*)\}\}")
+
+# Formatter directives belong to the template, not to the artifact rendered from
+# it. The template needs one: prettier collapses `> [!NOTE]` onto the line below
+# it, and the Hub only renders the alert when that marker is on a line of its
+# own.
+PRETTIER_IGNORE_RE = re.compile(r"^<!-- prettier-ignore -->\n", re.MULTILINE)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -168,22 +191,6 @@ def facts_from_payload(payload: Path, version: str) -> CardFacts:
     )
 
 
-# Rendered markdown hides HTML comments, so this is invisible on the dataset
-# page but sits at the top of the raw file -- in front of whoever is about to
-# edit the card on the Hub, which the Versioning section alone cannot reach.
-GENERATED_BANNER = f"""<!--
-  GENERATED FILE -- DO NOT EDIT ON THE HUB.
-
-  This card, YAML front matter included, is regenerated from the release
-  artifacts and committed over whatever is here on every publish. Edits made
-  through the Hub UI, and community pull requests merged into it, are reverted
-  by the next publish without warning.
-
-  Change the generator instead:
-  {GITHUB_REPO}/blob/main/scripts/hf/generate_dataset_card.py
--->"""
-
-
 def front_matter(names: list[str], summary: dict[str, Any]) -> str:
     """Render the YAML block. `license` is a list so each one gets a Hub filter."""
     present = {
@@ -227,19 +234,9 @@ def describe(name: str, schemas: dict[str, dict[str, Any]]) -> str:
     return ""
 
 
-def indices_section(facts: CardFacts) -> str:
-    lines = [
-        "## Indices",
-        "",
-        (
-            "Each index is a separate config (subset). Load one with the `name`"
-            " argument of `load_dataset`, or select it from the dropdown in the"
-            " dataset viewer."
-        ),
-        "",
-        "| Config | Rows | Size | Description |",
-        "|---|---:|---:|---|",
-    ]
+def indices_table(facts: CardFacts) -> str:
+    """One row per config: rows, size on disk, and its sidecar's description."""
+    lines = ["| Config | Rows | Size | Description |", "|---|---:|---:|---|"]
     for name in facts.names:
         size_mb = facts.sizes[name] / 1e6
         default = " (default)" if name == DEFAULT_CONFIG else ""
@@ -261,39 +258,30 @@ def column_table(schema: dict[str, Any]) -> list[str]:
     return lines
 
 
-def fields_section(names: list[str], schemas: dict[str, dict[str, Any]]) -> str:
-    """Document the default config in full; point the rest at their sidecars.
+def default_columns_table(schemas: dict[str, dict[str, Any]]) -> str:
+    """Every column of the default config, which the card documents in full."""
+    schema = schemas.get(DEFAULT_CONFIG)
+    if schema is None:
+        msg = (
+            f"No {DEFAULT_CONFIG}_schema.json among the artifacts, so the card"
+            f" would document none of {DEFAULT_CONFIG}'s columns. Refusing to"
+            " publish a card that silently drops its field documentation."
+        )
+        raise SystemExit(msg)
+    return "\n".join(column_table(schema))
+
+
+def other_schemas_table(names: list[str], schemas: dict[str, dict[str, Any]]) -> str:
+    """Point every non-default config at its sidecar instead of its columns.
 
     Spelling out every column of every index made the card three times longer
     than the part anyone reads, for tables most visitors never open. The
     sidecars ship next to the Parquet files and say the same thing.
     """
-    lines = ["## Data fields", ""]
-
-    default_schema = schemas.get(DEFAULT_CONFIG)
-    if default_schema is not None:
-        lines += [
-            f"Columns of `{DEFAULT_CONFIG}`, the default config:",
-            "",
-            *column_table(default_schema),
-            "",
-        ]
-
-    others = [name for name in names if name != DEFAULT_CONFIG]
-    if not others:
-        return "\n".join(lines).rstrip()
-
-    lines += [
-        (
-            "Every other config is described by a `<config>_schema.json` sidecar"
-            " in this repository, carrying the same table and column"
-            " descriptions:"
-        ),
-        "",
-        "| Config | Columns | Schema |",
-        "|---|---:|---|",
-    ]
-    for name in others:
+    lines = ["| Config | Columns | Schema |", "|---|---:|---|"]
+    for name in names:
+        if name == DEFAULT_CONFIG:
+            continue
         schema = schemas.get(name)
         if schema is None:
             lines.append(f"| `{name}` | -- | no sidecar published |")
@@ -303,264 +291,98 @@ def fields_section(names: list[str], schemas: dict[str, dict[str, Any]]) -> str:
         lines.append(
             f"| `{name}` | {count} | [`{sidecar}`]({HUB_URL}/blob/main/{sidecar}) |"
         )
-
-    lines += [
-        "",
-        "They are plain JSON, so you can read one without downloading the data:",
-        "",
-        "```python",
-        "import json, urllib.request",
-        "",
-        f'url = "{HUB_URL}/resolve/main/seg_index_schema.json"',
-        "schema = json.load(urllib.request.urlopen(url))",
-        'print(schema["table_description"])',
-        'for column in schema["columns"]:',
-        '    print(column["name"], "--", column.get("description", ""))',
-        "```",
-    ]
-    return "\n".join(lines).rstrip()
+    return "\n".join(lines)
 
 
-def licensing_section(summary: dict[str, Any]) -> str:
-    lines = [
-        "## Licensing",
-        "",
-        (
-            "**The images are not covered by a single license.** Every row carries"
-            " a `license_short_name` giving the license of that series; the YAML"
-            " above lists all of them so the dataset appears under each one's Hub"
-            " filter. Check it per series before redistributing or using data"
-            " commercially."
-        ),
-        "",
-        "| License | Series | Commercial use |",
-        "|---|---:|---|",
-    ]
+def license_table(summary: dict[str, Any]) -> str:
+    """Series count per license, with whether commercial use is allowed."""
+    lines = ["| License | Series | Commercial use |", "|---|---:|---|"]
     for name, count in summary["licenses"]:
         commercial = "not allowed" if "NC" in name else "allowed"
         if name not in LICENSE_IDS:
             commercial = "see terms"
         lines.append(f"| {name} | {count:,} | {commercial} |")
-
-    lines += [
-        "",
-        (
-            "Series under *National Library of Medicine Terms and Conditions* are"
-            " governed by"
-            " <https://www.nlm.nih.gov/databases/download/terms_and_conditions.html>."
-        ),
-        "",
-        (
-            "Every license IDC uses -- CC BY and CC BY-NC alike -- requires"
-            " **attribution**. See [IDC licensing and"
-            " attribution](https://learn.canceridc.dev/data/licensing)."
-        ),
-        "",
-        (
-            "The index files in this repository are a factual catalog of that"
-            " content and are distributed under the license of the"
-            f" [idc-index-data repository]({GITHUB_REPO}/blob/main/LICENSE). That"
-            " license covers the tables only, never the referenced images."
-        ),
-    ]
     return "\n".join(lines)
 
 
-def citation_section() -> str:
-    return """## Attribution and citation
-
-Attribution is required by every license in this catalog, and it is owed to the
-**source dataset**, not to IDC. Each row's `source_DOI` identifies the dataset
-the series came from; resolve it to a formatted citation with IDC's citations
-API or `IDCClient.citations_from_selection()`.
-
-Many IDC collections originate from [The Cancer Imaging Archive
-(TCIA)](https://www.cancerimagingarchive.net/); IDC is a TCIA Data Analysis
-Center. Those collections additionally carry TCIA's [data usage policies and
-restrictions](https://www.cancerimagingarchive.net/data-usage-policies-and-restrictions/),
-including obligations on downstream attribution.
-
-Please also acknowledge IDC itself:
-
-```bibtex
-@article{fedorov2023idc,
-  title   = {National Cancer Institute Imaging Data Commons: Toward Transparency,
-             Reproducibility, and Scalability in Imaging Artificial Intelligence},
-  author  = {Fedorov, Andrey and Longabaugh, William J. R. and Pot, David and
-             Clunie, David A. and Pieper, Steven D. and Gibbs, David L. and
-             Bridge, Christopher and Herrmann, Markus D. and Homeyer, Andr\\'e and
-             Lewis, Rob and Aerts, Hugo J. W. L. and Krishnaswamy, Deepa and
-             Thiriveedhi, Vamsi K. and Ciausu, Cosmin and Schacherer, David P. and
-             Bontempi, Dennis and Pihl, Todd and Wagner, Ulrike and
-             Farahani, Keyvan and Kim, Erika and Kikinis, Ron},
-  journal = {RadioGraphics},
-  volume  = {43},
-  number  = {12},
-  year    = {2023},
-  doi     = {10.1148/rg.230180}
-}
-```"""
-
-
-def build_card(facts: CardFacts) -> str:
-    names, schemas, summary = facts.names, facts.schemas, facts.summary
-    version, idc = facts.version, facts.idc
+def card_values(facts: CardFacts) -> dict[str, str]:
+    """Every value the template can substitute, keyed by placeholder name."""
+    summary = facts.summary
     idc_label = (
-        f"IDC v{idc[0]} (released {idc[1]})" if idc else "the current IDC release"
+        f"IDC v{facts.idc[0]} (released {facts.idc[1]})"
+        if facts.idc
+        else "the current IDC release"
     )
 
-    quickstart = f'''## Quickstart
+    return {
+        # URLs the prose links to. They stay here rather than being inlined in
+        # the template so the comments above them -- which record why this URL
+        # and not the obvious one -- stay next to the value they explain.
+        "pretty_name": PRETTY_NAME,
+        "hub_repo": HUB_REPO,
+        "hub_url": HUB_URL,
+        "github_repo": GITHUB_REPO,
+        "gcs_mirror": GCS_MIRROR,
+        "idc_portal": IDC_PORTAL,
+        "idc_visualization": IDC_VISUALIZATION,
+        "idc_agents": IDC_AGENTS,
+        "ohif_repo": OHIF_REPO,
+        "slim_repo": SLIM_REPO,
+        "default_config": DEFAULT_CONFIG,
+        # Read from the artifacts.
+        "version": facts.version,
+        "idc_label": idc_label,
+        "series": f"{summary['series']:,}",
+        "studies": f"{summary['studies']:,}",
+        "patients": f"{summary['patients']:,}",
+        "collections": str(summary["collections"]),
+        "size_tb": f"{summary['size_tb']:.1f}",
+        "size_tb_whole": f"{summary['size_tb']:.0f}",
+        # Generated tables.
+        "indices_table": indices_table(facts),
+        "default_columns_table": default_columns_table(facts.schemas),
+        "other_schemas_table": other_schemas_table(facts.names, facts.schemas),
+        "license_table": license_table(summary),
+    }
 
-```bash
-pip install datasets idc-index
-```
 
-`datasets` reads this catalog;
-[`idc-index`](https://pypi.org/project/idc-index/) is the client that downloads
-the DICOM files it points at. Filter here, download there:
+def render(template: str, values: dict[str, str]) -> str:
+    """Substitute every ``{{name}}`` token, refusing any mismatch either way.
 
-```python
-from datasets import load_dataset
+    Strict in both directions on purpose. A placeholder only the template knows
+    about would otherwise publish a literal ``{{patients}}`` to the Hub, and one
+    only the generator knows about would drop a count from the card silently.
+    Both are worse than a failed build.
+    """
+    wanted = set(PLACEHOLDER_RE.findall(template))
+    supplied = set(values)
 
-idx = load_dataset("{HUB_REPO}", "idc_index", split="train")
-sel = idx.filter(
-    lambda r: r["collection_id"] == "nsclc_radiomics" and r["Modality"] == "SEG"
-)
-
-from idc_index import IDCClient
-
-client = IDCClient()
-client.download_from_selection(
-    seriesInstanceUID=sel["SeriesInstanceUID"], downloadDir="./idc_data"
-)
-```
-
-Downloads come directly from IDC's public AWS and GCS buckets at no cost to you.
-What lands on disk is DICOM; read it with [pydicom](https://pydicom.github.io/)
-or [highdicom](https://highdicom.readthedocs.io/).
-
-Every series in this catalog can also be looked at without downloading
-anything. IDC streams the pixels to a zero-footprint browser viewer, and
-`get_viewer_URL` builds a link to any series you have selected:
-
-```python
-print(client.get_viewer_URL(seriesInstanceUID=sel["SeriesInstanceUID"][0]))
-```
-
-It picks the viewer that fits the data --
-[OHIF]({OHIF_REPO}) for radiology,
-[Slim]({SLIM_REPO}) for slide microscopy --
-and opens the enclosing study with your series selected. Passing a
-segmentation, as above, brings it up overlaid on the images it segments.
-
-Query the catalog without downloading anything, using DuckDB:
-
-```sql
-SELECT collection_id, COUNT(*) AS series, SUM(series_size_MB) / 1e6 AS size_TB
-FROM 'hf://datasets/{HUB_REPO}/idc_index.parquet'
-GROUP BY 1 ORDER BY size_TB DESC LIMIT 10;
-```
-
-The same queries run in the **SQL Console** tab on this page, with no local setup.'''
-
-    versioning = f"""## Versioning
-
-Tags on this repo match the [idc-index-data releases]({GITHUB_REPO}/releases)
-one for one, and `main` always holds the most recent published release. Pin a
-version to keep results reproducible:
-
-```python
-load_dataset("{HUB_REPO}", "idc_index", revision="{version}")
-```
-
-This release, `{version}`, indexes {idc_label}. Not every idc-index-data release
-is published here; tags on this repo are a subset of the GitHub releases.
-
-This card is generated, not maintained here. Every publish regenerates
-`README.md` -- YAML front matter and all -- from the release artifacts and
-commits it over whatever the Hub currently holds. Edits made through the Hub UI
-and community pull requests merged into this card are reverted by the next
-publish, with no warning and no notification to whoever made them. The old text
-survives only in this repo's commit history.
-
-So please don't send card fixes as pull requests here; they will not last.
-Open them against the generator,
-[`scripts/hf/generate_dataset_card.py`]({GITHUB_REPO}/blob/main/scripts/hf/generate_dataset_card.py),
-and they will appear at the next release. Nothing else on the Hub is affected:
-discussions persist, and only the Parquet files, their `*_schema.json` sidecars
-and this card are ever written or removed by the publishing job."""
-
-    links = f"""## Links
-
-- [IDC portal]({IDC_PORTAL}/explore/) -- browse the data and build cohorts interactively
-- [Visualizing IDC images]({IDC_VISUALIZATION}) -- how the browser viewers work; get a link to any series with `IDCClient.get_viewer_URL()`
-- [IDC agent interfaces]({IDC_AGENTS}) -- search IDC, size a cohort and get a download command by asking: hosted MCP server, agent skill, or REST API
-- [IDC documentation](https://learn.canceridc.dev/)
-- [`idc-index` Python package](https://github.com/ImagingDataCommons/idc-index) -- the download client (`pip install idc-index`)
-- [`idc-index-data` on GitHub]({GITHUB_REPO}) -- how these tables are built (SQL included)
-- [GCS mirror of the release artifacts]({GCS_MIRROR}?prefix=current/release_artifacts/)
-  -- fetch a single file directly, e.g.
-  `{GCS_MIRROR}/current/release_artifacts/idc_index.parquet`
-- [IDC user forum](https://discourse.canceridc.dev/)"""
-
-    summary_text = f"""# {PRETTY_NAME}
-
-**This dataset is a catalog. It contains metadata and cloud locations for every
-DICOM series in the NCI Imaging Data Commons; it does not contain pixel data.**
-
-[IDC]({IDC_PORTAL}) is an NCI Cancer
-Research Data Commons repository of publicly available cancer imaging data,
-co-located with analysis tools in the cloud. To explore it interactively
-instead, use the [IDC portal]({IDC_PORTAL}/explore/).
-Without downloading anything, any image in IDC can be
-[viewed in the browser]({IDC_VISUALIZATION}).
-To query IDC in plain language, point an AI assistant at its
-[agent interfaces]({IDC_AGENTS}) --
-a hosted MCP server, an agent skill, and a REST API over the same metadata.
-
-This catalog describes {idc_label}:
-**{summary["series"]:,} series** across {summary["studies"]:,} studies,
-{summary["patients"]:,} patients and {summary["collections"]} collections,
-totalling **{summary["size_tb"]:.1f} TB** of imaging data.
-
-One row is one DICOM series, with its collection, patient, study and series
-attributes, its license and source DOI, and the S3 URL to fetch it from. Use it
-to find the data you want here, then download only that -- the alternative is
-sifting through {summary["size_tb"]:.0f} TB.
-
-These are the same Parquet files published with each
-[idc-index-data release]({GITHUB_REPO}/releases), republished here for the
-dataset viewer, the SQL Console, automatic
-[Croissant](https://huggingface.co/docs/dataset-viewer/en/croissant) metadata,
-and a citable, versioned record you can pin.
-
-Every config has a single split named `train`, the Hub default, because many
-downstream tools assume it exists. It carries no train/test meaning."""
-
-    note = """> [!NOTE]
-> `clinical_index` is a *dictionary* of the clinical tables and columns
-> available per collection -- not the clinical data itself. The clinical tables
-> are not among these artifacts; retrieve them with
-> `IDCClient.get_clinical_table()`."""
-
-    return (
-        "\n\n".join(
-            [
-                front_matter(names, summary),
-                GENERATED_BANNER,
-                summary_text,
-                quickstart,
-                indices_section(facts),
-                note,
-                fields_section(names, schemas),
-                licensing_section(summary),
-                citation_section(),
-                versioning,
-                links,
-            ]
+    if missing := wanted - supplied:
+        msg = (
+            "The template uses placeholders the generator does not supply:"
+            f" {', '.join(sorted(missing))}"
         )
-        + "\n"
-    )
+        raise SystemExit(msg)
+    if unused := supplied - wanted:
+        msg = (
+            "The generator supplies placeholders the template does not use:"
+            f" {', '.join(sorted(unused))}"
+        )
+        raise SystemExit(msg)
+
+    # Replace via a function, not a string: a schema description could contain
+    # a backslash, which re.sub would read as a group reference.
+    card = PLACEHOLDER_RE.sub(lambda match: values[match.group(1)], template)
+    return PRETTIER_IGNORE_RE.sub("", card)
+
+
+def build_card(facts: CardFacts, template: str | None = None) -> str:
+    """Render the full card. ``template`` defaults to ``card_template.md``."""
+    if template is None:
+        template = TEMPLATE.read_text()
+
+    body = render(template, card_values(facts))
+    return front_matter(facts.names, facts.summary) + "\n\n" + body.rstrip() + "\n"
 
 
 def main() -> None:

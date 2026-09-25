@@ -30,7 +30,7 @@ generate-indices  ->  prepare_hf_payload.py  ->  generate_dataset_card.py  ->  h
 | Step                                  | What it does                                                                        |
 | ------------------------------------- | ----------------------------------------------------------------------------------- |
 | `scripts/hf/prepare_hf_payload.py`    | Stages the publishable indexes, repacking each Parquet file with bounded row groups |
-| `scripts/hf/generate_dataset_card.py` | Renders `README.md` (YAML front matter plus body) from the payload                  |
+| `scripts/hf/generate_dataset_card.py` | Renders `README.md` from `card_template.md` plus values read from the payload       |
 | `hf upload`                           | Pushes Parquet, schema JSON and the card, authenticating via a Trusted Publisher    |
 | `hf repos tag create`                 | Tags the Hub repo with the release version                                          |
 
@@ -131,15 +131,45 @@ incomplete artifact set would silently delete indexes from the Hub, so
 
 `README.md` is **generated on every publish** and overwrites whatever is on the
 Hub, so Hub UI edits and merged community PRs against the card are both lost.
-Change `scripts/hf/generate_dataset_card.py` instead. The card says so twice: in
-the Versioning section, and in a `GENERATED_BANNER` HTML comment at the top of
-the file, which is invisible when rendered but sits in front of anyone opening
-the Hub editor.
+Change the source instead. The card says so twice: in the Versioning section,
+and in an HTML comment at the top of the file, which is invisible when rendered
+but sits in front of anyone opening the Hub editor.
+
+The source is split by what kind of change it is:
+
+| To change                                      | Edit                                  |
+| ---------------------------------------------- | ------------------------------------- |
+| Wording, links, section order, code examples   | `scripts/hf/card_template.md`         |
+| A count, a table, the YAML front matter, a tag | `scripts/hf/generate_dataset_card.py` |
+
+The template is plain Markdown -- readable in any preview pane -- with
+`{{placeholder}}` tokens where generated values go. Nothing computed lives in
+it, and no prose lives in the generator. Substitution is **strict in both
+directions**: a token the generator does not supply and a value the template
+does not use are each a hard failure, so a renamed placeholder cannot ship a
+literal `{{patients}}` to the Hub or silently drop a count.
+
+Two things to know when editing the template:
+
+- prettier formats it, and rewraps prose to 80 columns. The published card
+  inherits that wrapping, which is why a wording change produces a reflowed
+  paragraph rather than a one-line diff.
+- prettier also collapses `> [!NOTE]` onto the line below it, which stops the
+  Hub rendering it as an alert. The one such block carries a
+  `<!-- prettier-ignore -->`, and the generator strips those directives out of
+  the rendered card.
+
+The YAML front matter is generated rather than templated: it carries no prose to
+review, just a license list and a config list derived from the artifacts, and a
+template holding half a YAML block would not parse as the front matter it
+becomes. Editorial front-matter values -- `pretty_name`, `CARD_TAGS`,
+`size_categories` -- are constants near the top of the generator.
 
 Counts, the license table and the per-config field tables are all derived from
 the artifacts, so the card cannot drift from the data. Descriptions come from
 the `table_description` and per-column `description` values in each
-`*_schema.json`.
+`*_schema.json`. If `idc_index_schema.json` is missing the generator fails
+rather than publishing a card with no field documentation.
 
 The card documents the columns of `idc_index` in full and lists every other
 config with its column count and a link to its `*_schema.json`. Spelling out
@@ -180,6 +210,9 @@ and guidance get revised whenever someone reads the page with fresh eyes; the
 counts and schemas only move when a new index build is published. Going through
 `cd.yml` to fix a sentence would mean a BigQuery index build and 117 MB of
 Parquet rewritten into permanent Hub history.
+
+So the usual card change is two steps: edit `scripts/hf/card_template.md`, then
+run the refresh below to push only `README.md`.
 
 `scripts/hf/refresh_dataset_card.py` regenerates the card from the files
 **already on the Hub** and uploads `README.md` alone: row counts from the
