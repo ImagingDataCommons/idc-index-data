@@ -12,7 +12,9 @@ This reads the facts back out of the published files instead: row counts from
 the Parquet footers, file sizes from the Hub API, the headline counts and
 license table from five columns of ``idc_index`` (~12 MB of a 73 MB file), and
 the release version from the ``idc_index_data_version`` key embedded in it. It
-renders the card with the current generator and uploads ``README.md`` alone.
+renders the card with the current generator and uploads ``README.md`` alone. So
+the wording comes from ``card_template.md`` in this checkout and the numbers come
+from the Hub, which is the split that makes a prose-only change possible.
 
 Reading from the Hub rather than from a local artifacts directory is the point,
 not a convenience. The card must describe the bytes the Hub is serving, and the
