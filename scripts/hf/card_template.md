@@ -109,10 +109,10 @@ spacing and gantry tilt are all common.
 
 [highdicom](https://highdicom.readthedocs.io/) handles this, and returns a
 `Volume` that keeps voxel spacing and the patient-space affine next to the
-array. The examples below were tested with highdicom 0.28.
+array. The examples below were tested with highdicom 0.28.2.
 
 ```bash
-pip install "highdicom>=0.28" duckdb idc-index torch
+pip install "highdicom>=0.28.2" duckdb idc-index torch
 ```
 
 Start in the catalog. `volume_geometry_index` flags every CT, MR and PET series
@@ -158,14 +158,39 @@ def load_volume(uid):
     )
 
 
+def volume_to_channel_first_tensor(vol):
+    # Convert to a tensor with a leading channel dimension, as is typically
+    # required in pytorch
+
+    # The result of a match_geometry operation may be permuted/flipped
+    # so the resulting numpy array is non-contiguous
+    arr = np.ascontiguousarray(vol.array)
+
+    if vol.number_of_channel_dimensions == 0:
+        # Volume has no channel -> add one
+        # Result is (channels, slices, rows, columns)
+        t = torch.from_numpy(vol.array).unsqueeze(0)
+    elif vol.number_of_channel_dimensions == 1:
+        # Volume has a trailing channel -> permute to the fron
+        t = torch.from_numpy(vol.array).permute([3, 0, 1, 2])
+
+    return t
+
+
 vol = load_volume(uids[0])
-image = torch.from_numpy(vol.array)  # (slices, rows, columns), in HU
+image = volume_to_channel_first_tensor(vol)
+
 print(image.shape, vol.spacing)  # spacing in mm, same axis order
 ```
 
 `get_volume_from_series` raises `ValueError` for a series that is not a regular
 grid. Those are the series the geometry filter above leaves out. Pass `dtype`
 explicitly; the default is `float64`.
+
+There are many other parameters of `get_volume_from_series` here that control
+things such as which pixel transforms are applied. See the function's
+[documentation](https://highdicom.readthedocs.io/en/latest/package.html#highdicom.get_volume_from_series)
+for more details.
 
 ### Segmentations
 
@@ -193,26 +218,32 @@ client.download_from_selection(
 
 ct = load_volume(image_uid)
 seg = hd.seg.segread(next(Path("idc_data", seg_uid).glob("*.dcm")))
-labels = seg.get_volume()  # one channel per segment
-if not labels.geometry_equal(ct, tol=1e-3):
-    labels = labels.match_geometry(ct, tol=1e-3)
+labels = seg.get_volume(combine_segments=True)
+labels = labels.match_geometry(ct, tol=1e-3)
 
-image = torch.from_numpy(ct.array)
-mask = torch.from_numpy(np.ascontiguousarray(labels.array))  # (..., segments)
+image = volume_to_channel_first_tensor(ct)
+mask = volume_to_channel_first_tensor(labels)
 print([s.SegmentLabel for s in seg.SegmentSequence])
 ```
 
-A segmentation often covers fewer slices than its image, or stores them in the
-opposite order; `match_geometry` pads and flips it onto the image grid. That
-flip returns a view with negative strides, which `torch.from_numpy` rejects,
-hence `np.ascontiguousarray`. The loose `tol` absorbs rounding in stored
-positions, and the `geometry_equal` check sidesteps a
-[highdicom 0.28 bug](https://github.com/ImagingDataCommons/highdicom/issues/462)
-in `match_geometry` when the grids already agree.
+A segmentation often covers fewer slices than its image, is rotated relative to
+the source image, or stores the slices in the opposite order; `match_geometry`
+pads, flips and rotates it (as required) onto the image grid. The loose `tol`
+absorbs rounding in stored positions. The default tolerance is quite tight but
+care should be taken when increasing it because this can lead to genuine
+misalignment between segmentations and source images going unnoticed.
 
-Segments can overlap, so the mask keeps one channel per segment.
-`seg.get_volume(combine_segments=True, relabel=True)` gives a single label map
-instead, and raises `RuntimeError` when segments overlap.
+The resulting tensor has all segments combined into a single 3D volume, where
+integer pixel represents the label. However, this is only possible if segments
+do not overlap each other. In the unusual situation where segments do overlap,
+`seg.get_volume(combine_segments=False)` gives a stack of binary masks, one for
+each pixel, down the final dimension of the output array.
+
+
+There are many other parameters of `get_volume` here that allow you to select
+only a subset of the available segments. See the method's
+[documentation](https://highdicom.readthedocs.io/en/latest/package.html#highdicom.seg.Segmentation.get_volume)
+for more information.
 
 ### Training and other image types
 
@@ -363,6 +394,8 @@ and this card are ever written or removed by the publishing job.
   -- the download client (`pip install idc-index`)
 - [`idc-index-data` on GitHub]({{github_repo}}) -- how these tables are built
   (SQL included)
+- [`highdicom` Python package](https://github.com/ImagingDataCommons/highdicom)
+  -- used to read DICOM and arrange as tensors
 - [GCS mirror of the release artifacts]({{gcs_mirror}}?prefix=current/release_artifacts/)
   -- fetch a single file directly, e.g.
   `{{gcs_mirror}}/current/release_artifacts/{{default_config}}.parquet`
