@@ -69,8 +69,9 @@
 #   ANY_VALUE(x) — returns an arbitrary value of x from the group;
 #       used when all values in the group are expected to be the same.
 
-# To use a specific IDC version instead of idc_current, replace
-# `bigquery-public-data.idc_current.dicom_all` with e.g. `bigquery-public-data.idc_v24.dicom_all`
+# The dataset is pinned to a specific IDC version (rather than idc_current) so
+# that the version bump changes this file, which invalidates the CD parquet
+# cache (keyed on the SHA256 of the SQL file).
 
 # Configurable parameters
 DECLARE relativeSliceTolerance FLOAT64 DEFAULT 0.01;   # max allowed variation in slice spacing as a fraction
@@ -135,7 +136,7 @@ rawData AS (
     `Columns` AS pixelColumns
 
   FROM
-    `bigquery-public-data.idc_current.dicom_all` bid
+    `bigquery-public-data.idc_v24.dicom_all` bid
   WHERE
     # Restrict to single-frame SOP Classes:
     #   1.2.840.10008.5.1.4.1.1.2   = CT Image Storage
@@ -146,7 +147,7 @@ rawData AS (
     # not part of the volumetric acquisition
     AND SeriesInstanceUID NOT IN (
       SELECT SeriesInstanceUID
-      FROM `bigquery-public-data.idc_current.dicom_all`, UNNEST(ImageType) image_type
+      FROM `bigquery-public-data.idc_v24.dicom_all`, UNNEST(ImageType) image_type
       WHERE image_type = 'LOCALIZER' or image_type LIKE "%MIP%"
     )
 ),

@@ -188,6 +188,7 @@ def bump(session: nox.Session) -> None:
     files = (
         "scripts/sql/",
         "assets/",
+        "scripts/gdc/",
         "tests/test_package.py",
     )
     _bump(

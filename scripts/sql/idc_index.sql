@@ -93,6 +93,7 @@ SELECT
     WHEN "1.2.840.10008.5.1.4.1.1.66" THEN "Raw Data Storage"
     WHEN "1.2.840.10008.5.1.4.1.1.66.1" THEN "Spatial Registration Storage"
     WHEN "1.2.840.10008.5.1.4.1.1.66.4" THEN "Segmentation Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.66.7" THEN "Label Map Segmentation Storage"
     WHEN "1.2.840.10008.5.1.4.1.1.67" THEN "Real World Value Mapping Storage"
     WHEN "1.2.840.10008.5.1.4.1.1.7" THEN "Secondary Capture Image Storage"
     WHEN "1.2.840.10008.5.1.4.1.1.7.2" THEN "Multi-frame Grayscale Byte Secondary Capture Image Storage"
@@ -118,6 +119,7 @@ SELECT
   STRING_AGG(DISTINCT CASE TransferSyntaxUID
     WHEN "1.2.840.10008.1.2" THEN "Implicit VR Little Endian"
     WHEN "1.2.840.10008.1.2.1" THEN "Explicit VR Little Endian"
+    WHEN "1.2.840.10008.1.2.1.99" THEN "Deflated Explicit VR Little Endian"
     WHEN "1.2.840.10008.1.2.2" THEN "Explicit VR Big Endian"
     WHEN "1.2.840.10008.1.2.4.50" THEN "JPEG Baseline"
     WHEN "1.2.840.10008.1.2.4.51" THEN "JPEG Extended"
@@ -129,6 +131,7 @@ SELECT
   END, "," ORDER BY CASE TransferSyntaxUID
     WHEN "1.2.840.10008.1.2" THEN "Implicit VR Little Endian"
     WHEN "1.2.840.10008.1.2.1" THEN "Explicit VR Little Endian"
+    WHEN "1.2.840.10008.1.2.1.99" THEN "Deflated Explicit VR Little Endian"
     WHEN "1.2.840.10008.1.2.2" THEN "Explicit VR Big Endian"
     WHEN "1.2.840.10008.1.2.4.50" THEN "JPEG Baseline"
     WHEN "1.2.840.10008.1.2.4.51" THEN "JPEG Extended"
