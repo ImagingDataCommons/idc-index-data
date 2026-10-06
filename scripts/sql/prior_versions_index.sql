@@ -75,8 +75,6 @@ SELECT
   WHEN gcs_bucket='idc-open-data' THEN CONCAT('s3://','idc-open-data/',crdc_series_uuid, '/*')
   ELSE ERROR(CONCAT('Unmapped GCS bucket: ', gcs_bucket, '. Please add a mapping.'))
     END AS series_aws_url,
-
-  gcs_bucket,
   CASE
 
   # map GCS bucket to AWS bucket, since for idc-index we prefer AWS
