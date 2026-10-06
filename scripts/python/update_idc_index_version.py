@@ -63,11 +63,12 @@ def update_sql_scripts(idc_index_version):
         if sql_file.name != "prior_versions_index.sql":
             _update_file(sql_file, idc_pattern, idc_replacement)
 
-    # Update all .sql files in assets
-    assets_dir = ROOT_DIR / "assets"
-    if assets_dir.exists():
-        for sql_file in assets_dir.glob("*.sql"):
-            _update_file(sql_file, idc_pattern, idc_replacement)
+    # Update all .sql files in assets and in auxiliary generators (e.g. the
+    # GDC mapping query in scripts/gdc, which CD runs outside the manager)
+    for aux_dir in (ROOT_DIR / "assets", ROOT_DIR / "scripts" / "gdc"):
+        if aux_dir.exists():
+            for sql_file in aux_dir.glob("*.sql"):
+                _update_file(sql_file, idc_pattern, idc_replacement)
 
     # Pattern 2: Update latest_idc_version in prior_versions_index.sql
     prior_versions_file = sql_dir / "prior_versions_index.sql"
@@ -119,7 +120,7 @@ def main():
             Complete! Now run:
 
             git switch -c update-to-idc-index-{release}
-            git add -u scripts/sql/ assets/ tests/test_package.py
+            git add -u scripts/sql/ assets/ scripts/gdc/ tests/test_package.py
             git commit -m "Update to IDC index {release}"
             git tag -a {release}.0.0 -m "Update to IDC index {release}"
             gh pr create --fill --body "Created by update_idc_index_version.py"
