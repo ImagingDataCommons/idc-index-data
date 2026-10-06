@@ -72,6 +72,8 @@ SELECT
   WHEN gcs_bucket='public-datasets-idc' THEN CONCAT('s3://','idc-open-data/',crdc_series_uuid, '/*')
   WHEN gcs_bucket='idc-open-idc1' THEN CONCAT('s3://','idc-open-data-two/',crdc_series_uuid, '/*')
   WHEN gcs_bucket='idc-open-cr' THEN CONCAT('s3://','idc-open-data-cr/',crdc_series_uuid, '/*')
+  WHEN gcs_bucket='idc-open-data' THEN CONCAT('s3://','idc-open-data/',crdc_series_uuid, '/*')
+  ELSE ERROR(CONCAT('Unmapped GCS bucket: ', gcs_bucket, '. Please add a mapping.'))
     END AS series_aws_url,
 
   gcs_bucket,
@@ -83,6 +85,8 @@ SELECT
   WHEN gcs_bucket='public-datasets-idc' THEN 'idc-open-data'
   WHEN gcs_bucket='idc-open-idc1' THEN 'idc-open-data-two'
   WHEN gcs_bucket='idc-open-cr' THEN 'idc-open-data-cr'
+  WHEN gcs_bucket='idc-open-data' THEN 'idc-open-data'
+  ELSE ERROR(CONCAT('Unmapped GCS bucket: ', gcs_bucket, '. Please add a mapping.'))
     END AS aws_bucket,
   MIN(idc_version) AS min_idc_version,
   MAX(idc_version) AS max_idc_version
