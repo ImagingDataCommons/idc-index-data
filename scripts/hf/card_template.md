@@ -171,7 +171,7 @@ def volume_to_channel_first_tensor(vol):
         # Result is (channels, slices, rows, columns)
         t = torch.from_numpy(vol.array).unsqueeze(0)
     elif vol.number_of_channel_dimensions == 1:
-        # Volume has a trailing channel -> permute to the fron
+        # Volume has a trailing channel -> permute to the front
         t = torch.from_numpy(vol.array).permute([3, 0, 1, 2])
 
     return t
