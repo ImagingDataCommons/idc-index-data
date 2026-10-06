@@ -239,7 +239,6 @@ do not overlap each other. In the unusual situation where segments do overlap,
 `seg.get_volume(combine_segments=False)` gives a stack of binary masks, one for
 each pixel, down the final dimension of the output array.
 
-
 There are many other parameters of `get_volume` here that allow you to select
 only a subset of the available segments. See the method's
 [documentation](https://highdicom.readthedocs.io/en/latest/package.html#highdicom.seg.Segmentation.get_volume)
