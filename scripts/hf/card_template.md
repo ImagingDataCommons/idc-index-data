@@ -173,6 +173,8 @@ def volume_to_channel_first_tensor(vol):
     elif vol.number_of_channel_dimensions == 1:
         # Volume has a trailing channel -> permute to the front
         t = torch.from_numpy(arr).permute([3, 0, 1, 2])
+    else:
+        raise ValueError("Expected at most one channel dimension")
 
     return t
 
@@ -180,33 +182,33 @@ def volume_to_channel_first_tensor(vol):
 vol = load_volume(uids[0])
 image = volume_to_channel_first_tensor(vol)
 
-print(image.shape, vol.spacing)  # spacing in mm, same axis order
+print(image.shape, vol.spacing)  # spacing in mm, of the three spatial axes
 ```
 
 `get_volume_from_series` raises `ValueError` for a series that is not a regular
 grid. Those are the series the geometry filter above leaves out. Pass `dtype`
 explicitly; the default is `float64`.
 
-There are many other parameters of `get_volume_from_series` here that control
-things such as which pixel transforms are applied. See the function's
-[documentation](https://highdicom.readthedocs.io/en/latest/package.html#highdicom.get_volume_from_series)
-for more details.
+`get_volume_from_series` has other parameters, for example to choose which pixel
+transforms are applied. See its
+[documentation](https://highdicom.readthedocs.io/en/latest/package.html#highdicom.get_volume_from_series).
 
 ### Segmentations
 
 `seg_index` has a row for each segmentation (DICOM SEG) series, and
-`segmented_SeriesInstanceUID` names the image series it segments. Download both
-and put the mask on the image's grid:
+`segmented_SeriesInstanceUID` names the image series it segments. This example
+takes one from NLSTSeg, expert segmentations of lung lesions in NLST CT,
+downloads it with its CT, and puts the mask on the CT's grid:
 
 ```python
 query = f"""
     SELECT s.SeriesInstanceUID, s.segmented_SeriesInstanceUID
     FROM '{hf}/seg_index.parquet' s
-    JOIN '{hf}/idc_index.parquet' i
-      ON i.SeriesInstanceUID = s.segmented_SeriesInstanceUID
+    JOIN '{hf}/idc_index.parquet' i USING (SeriesInstanceUID)
     JOIN '{hf}/volume_geometry_index.parquet' g
       ON g.SeriesInstanceUID = s.segmented_SeriesInstanceUID
-    WHERE i.collection_id = 'nsclc_radiomics' AND g.regularly_spaced_3d_volume
+    WHERE i.analysis_result_id = 'nlstseg' AND s.total_segments > 1
+      AND g.regularly_spaced_3d_volume
     LIMIT 1
 """
 seg_uid, image_uid = duckdb.sql(query).fetchone()
@@ -222,27 +224,34 @@ labels = seg.get_volume(combine_segments=True)
 labels = labels.match_geometry(ct, tol=1e-3)
 
 image = volume_to_channel_first_tensor(ct)
-mask = volume_to_channel_first_tensor(labels)
-print([s.SegmentLabel for s in seg.SegmentSequence])
+mask = volume_to_channel_first_tensor(labels)  # (1, slices, rows, columns)
+print({s.SegmentNumber: s.SegmentLabel for s in seg.SegmentSequence})
 ```
 
 A segmentation often covers fewer slices than its image, is rotated relative to
 the source image, or stores the slices in the opposite order; `match_geometry`
-pads, flips and rotates it (as required) onto the image grid. The loose `tol`
-absorbs rounding in stored positions. The default tolerance is quite tight but
-care should be taken when increasing it because this can lead to genuine
-misalignment between segmentations and source images going unnoticed.
+pads, flips and rotates it (as required) onto the image grid. `tol=1e-3` is
+looser than the default, to absorb rounding in stored positions. Loosen it no
+further than you need: a large tolerance can hide a segmentation that is
+genuinely misaligned with its image.
 
-The resulting tensor has all segments combined into a single 3D volume, where
-integer pixel represents the label. However, this is only possible if segments
-do not overlap each other. In the unusual situation where segments do overlap,
-`seg.get_volume(combine_segments=False)` gives a stack of binary masks, one for
-each pixel, down the final dimension of the output array.
+`combine_segments=True` returns a label map, in which each voxel holds the
+number of the segment it belongs to, or 0. NLSTSeg segments each lesion
+separately, so `mask` numbers the lesions, and `mask > 0` marks them all.
 
-There are many other parameters of `get_volume` here that allow you to select
-only a subset of the available segments. See the method's
+A label map cannot hold a voxel that belongs to two segments, and segments often
+do overlap. The expert segmentations in `nsclc_radiomics`, for example, outline
+the primary tumor inside the lung that contains it, and `combine_segments=True`
+raises `RuntimeError` on them. For those, `seg.get_volume()` returns one binary
+mask per segment down the last axis, which `volume_to_channel_first_tensor`
+moves to the front: `(segments, slices, rows, columns)`. Losses differ in which
+form they take. PyTorch's `CrossEntropyLoss` takes class indices, as in a label
+map, while losses that apply a sigmoid to each channel take one mask per
+segment, the only form that can represent overlap.
+
+`get_volume` can also select a subset of the segments. See its
 [documentation](https://highdicom.readthedocs.io/en/latest/package.html#highdicom.seg.Segmentation.get_volume)
-for more information.
+for this and its other parameters.
 
 ### Training and other image types
 
