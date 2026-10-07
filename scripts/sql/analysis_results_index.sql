@@ -41,7 +41,11 @@ SELECT
   description,
   # description:
   # citation for the analysis results collection that should be used for acknowledgment
-  citation
+  citation,
+  # description:
+  # parties responsible for the data in the analysis results collection: who contributed it to IDC,
+  # who provided the source material, who performed de-identification, and who produced the DICOM representation
+  provenance
 FROM
   `bigquery-public-data.idc_v25.analysis_results_metadata`
 ORDER BY

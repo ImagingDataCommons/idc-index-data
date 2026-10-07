@@ -22,7 +22,9 @@ SELECT
   # species represented in the collection
   species,
   # description:
-  # sources of data for the collection
+  # sources of data for the collection, including the per-source provenance record naming who
+  # contributed the data to IDC, who provided the source material, who performed de-identification,
+  # and who produced the DICOM representation
   sources,
   # description:
   # additional data supporting the collection available in IDC
