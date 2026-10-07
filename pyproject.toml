@@ -117,6 +117,9 @@ report.exclude_also = [
 
 [tool.mypy]
 files = ["src", "tests"]
+# src layout: let mypy resolve `idc_index_data` even when it is handed only a
+# subset of files (e.g. the pre-commit hook passing just the staged tests).
+mypy_path = ["src"]
 python_version = "3.10"
 warn_unused_configs = true
 strict = true
