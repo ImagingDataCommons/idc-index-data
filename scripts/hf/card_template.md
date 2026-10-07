@@ -249,8 +249,8 @@ raises `RuntimeError` on them. For those, `seg.get_volume()` returns one binary
 mask per segment down the last axis, which `volume_to_channel_first_tensor`
 moves to the front: `(segments, slices, rows, columns)`. Losses differ in which
 form they take. PyTorch's `CrossEntropyLoss` takes class indices, as in a label
-map, while losses that apply a sigmoid to each channel take one mask per
-segment, the only form that can represent overlap.
+map, while others, such as the default behavior of MONAI's `DiceLoss`, take one channel per
+segment. However, be aware that many common loss functions (such as Dice) expect the segments to be non-overlapping even when using the one-channel-per-segment representation, the so-called "one-hot" format.
 
 `get_volume` can also select a subset of the segments. See its
 [documentation](https://highdicom.readthedocs.io/en/latest/package.html#highdicom.seg.Segmentation.get_volume)
