@@ -50,7 +50,7 @@ from generate_dataset_card import (
     summarize_index,
 )
 from huggingface_hub import HfApi, HfFileSystem, hf_hub_download
-from huggingface_hub.errors import EntryNotFoundError
+from huggingface_hub.errors import EntryNotFoundError, RevisionNotFoundError
 from prepare_hf_payload import resolve_version
 
 # The card is only ever written to the default branch. Tags are immutable
@@ -176,11 +176,15 @@ def published_card(api: HfApi, repo: str, revision: str) -> str:
 
 def warn_unless_tagged(api: HfApi, repo: str, version: str) -> None:
     """Warn if the version the card claims has no matching tag on the Hub."""
-    tags = {ref.name for ref in api.list_repo_refs(repo, repo_type="dataset").tags}
-    if version not in tags:
+    # Look the tag up as a revision rather than listing refs: the token a
+    # Trusted Publisher issues is rejected by the /refs endpoint (401), but
+    # accepted by /revision/<rev>, the same endpoint hub_facts reads.
+    try:
+        api.repo_info(repo, repo_type="dataset", revision=version)
+    except RevisionNotFoundError:
         print(
             f"warning: the card will claim version {version!r}, which is not a"
-            f" tag on {repo}. Known tags: {', '.join(sorted(tags)) or 'none'}",
+            f" tag on {repo}",
             file=sys.stderr,
         )
 
