@@ -242,9 +242,9 @@ with its image.
 number of the segment it belongs to, or 0. NLSTSeg segments each lesion
 separately, so `mask` numbers the lesions.
 
-A label map cannot hold a voxel that belongs to two segments, and segments often
-do overlap. The expert segmentations in `nsclc_radiomics`, for example, outline
-the primary tumor inside the lung that contains it, and `combine_segments=True`
+A label map cannot hold a voxel that belongs to two segments, and segments may
+overlap. The expert segmentations in `nsclc_radiomics`, for example, outline the
+primary tumor inside the lung that contains it, and `combine_segments=True`
 raises `RuntimeError` on them. For those, `seg.get_volume()` returns one binary
 mask per segment down the last axis, which `volume_to_channel_first_tensor`
 moves to the front: `(segments, slices, rows, columns)`. Losses differ in which
