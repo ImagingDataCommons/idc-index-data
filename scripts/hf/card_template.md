@@ -240,7 +240,7 @@ with its image.
 
 `combine_segments=True` returns a label map, in which each voxel holds the
 number of the segment it belongs to, or 0. NLSTSeg segments each lesion
-separately, so `mask` numbers the lesions, and `mask > 0` marks them all.
+separately, so `mask` numbers the lesions.
 
 A label map cannot hold a voxel that belongs to two segments, and segments often
 do overlap. The expert segmentations in `nsclc_radiomics`, for example, outline
