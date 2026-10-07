@@ -221,7 +221,7 @@ client.download_from_selection(
 ct = load_volume(image_uid)
 seg = hd.seg.segread(next(Path("idc_data", seg_uid).glob("*.dcm")))
 labels = seg.get_volume(combine_segments=True)
-labels = labels.match_geometry(ct, tol=1e-3)
+labels = labels.match_geometry(ct)
 
 image = volume_to_channel_first_tensor(ct)
 mask = volume_to_channel_first_tensor(labels)  # (1, slices, rows, columns)
@@ -230,10 +230,13 @@ print({s.SegmentNumber: s.SegmentLabel for s in seg.SegmentSequence})
 
 A segmentation often covers fewer slices than its image, is rotated relative to
 the source image, or stores the slices in the opposite order; `match_geometry`
-pads, flips and rotates it (as required) onto the image grid. `tol=1e-3` is
-looser than the default, to absorb rounding in stored positions. Loosen it no
-further than you need: a large tolerance can hide a segmentation that is
-genuinely misaligned with its image.
+pads, flips and rotates it (as required) onto the image grid. It raises
+`RuntimeError` when the two grids are offset by a fraction of a voxel, and
+rounding in stored positions alone can cause that: some `nsclc_radiomics`
+segmentations sit 2e-5 voxels off their CT, just beyond the default tolerance,
+and `match_geometry(ct, tol=1e-4)` accepts them. Loosen `tol` no further than
+you need: a large tolerance can hide a segmentation that is genuinely misaligned
+with its image.
 
 `combine_segments=True` returns a label map, in which each voxel holds the
 number of the segment it belongs to, or 0. NLSTSeg segments each lesion
