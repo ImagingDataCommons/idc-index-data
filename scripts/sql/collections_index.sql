@@ -40,6 +40,6 @@ SELECT
   # detailed information about the collection
   description
 FROM
-  `bigquery-public-data.idc_v24.original_collections_metadata`
+  `bigquery-public-data.idc_v25.original_collections_metadata`
 ORDER BY
   collection_id

@@ -14,7 +14,7 @@ SELECT
   version_timestamp
 
 FROM
-  `bigquery-public-data.idc_v24.version_metadata`
+  `bigquery-public-data.idc_v25.version_metadata`
 
 ORDER BY
   idc_version

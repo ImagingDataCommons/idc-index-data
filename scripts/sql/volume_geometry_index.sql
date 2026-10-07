@@ -136,7 +136,7 @@ rawData AS (
     `Columns` AS pixelColumns
 
   FROM
-    `bigquery-public-data.idc_v24.dicom_all` bid
+    `bigquery-public-data.idc_v25.dicom_all` bid
   WHERE
     # Restrict to single-frame SOP Classes:
     #   1.2.840.10008.5.1.4.1.1.2   = CT Image Storage
@@ -147,7 +147,7 @@ rawData AS (
     # not part of the volumetric acquisition
     AND SeriesInstanceUID NOT IN (
       SELECT SeriesInstanceUID
-      FROM `bigquery-public-data.idc_v24.dicom_all`, UNNEST(ImageType) image_type
+      FROM `bigquery-public-data.idc_v25.dicom_all`, UNNEST(ImageType) image_type
       WHERE image_type = 'LOCALIZER' or image_type LIKE "%MIP%"
     )
 ),

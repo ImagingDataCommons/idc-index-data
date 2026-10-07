@@ -7,7 +7,7 @@ WITH aux_series AS (
     SeriesInstanceUID,
     MIN(series_init_idc_version) AS series_init_idc_version,
     MAX(series_revised_idc_version) AS series_revised_idc_version
-  FROM `bigquery-public-data.idc_v24.auxiliary_metadata`
+  FROM `bigquery-public-data.idc_v25.auxiliary_metadata`
   GROUP BY SeriesInstanceUID
 )
 SELECT
@@ -194,9 +194,9 @@ SELECT
   # total size of the series in megabytes
   SUM(SAFE_CAST(dicom_all.instance_size AS float64))/1000000. AS series_size_MB,
 FROM
-  `bigquery-public-data.idc_v24.dicom_all` AS dicom_all
+  `bigquery-public-data.idc_v25.dicom_all` AS dicom_all
 LEFT JOIN
-  `bigquery-public-data.idc_v24.dicom_metadata_curated` AS dicom_curated
+  `bigquery-public-data.idc_v25.dicom_metadata_curated` AS dicom_curated
 ON
   dicom_all.SOPInstanceUID = dicom_curated.SOPInstanceUID
 LEFT JOIN
