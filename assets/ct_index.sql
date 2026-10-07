@@ -31,7 +31,7 @@ WITH ct_data AS (
     ANY_VALUE(SAFE_CAST(DataCollectionDiameter AS FLOAT64)) AS DataCollectionDiameter,
     ANY_VALUE(SAFE_CAST(ReconstructionDiameter AS FLOAT64)) AS ReconstructionDiameter,
     ANY_VALUE(SpiralPitchFactor) AS SpiralPitchFactor
-  FROM `bigquery-public-data.idc_v24.dicom_all`
+  FROM `bigquery-public-data.idc_v25.dicom_all`
   WHERE SOPClassUID = '1.2.840.10008.5.1.4.1.1.2'
   GROUP BY SeriesInstanceUID
 )
