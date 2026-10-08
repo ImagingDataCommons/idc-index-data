@@ -416,4 +416,11 @@ and this card are ever written or removed by the publishing job.
 
 # Acknowledgments
 
-The data referenced here is maintained in part by the NCI Imaging Data Commons and The Cancer Imaging Archive projects, funded in whole or in part with Federal funds from the National Cancer Institute, National Institutes of Health, Department of Health and Human Services, under Task Order Nos. HHSN26110071 and 75N91019F00131, under Contract No. HHSN261201500003I. The content of this publication does not necessarily reflect the views or policies of the Department of Health and Human Services, nor does mention of trade names, commercial products, or organizations imply endorsement by the U.S. Government.
+The data referenced here is maintained in part by the NCI Imaging Data Commons
+and The Cancer Imaging Archive projects, funded in whole or in part with Federal
+funds from the National Cancer Institute, National Institutes of Health,
+Department of Health and Human Services, under Task Order Nos. HHSN26110071 and
+75N91019F00131, under Contract No. HHSN261201500003I. The content of this
+publication does not necessarily reflect the views or policies of the Department
+of Health and Human Services, nor does mention of trade names, commercial
+products, or organizations imply endorsement by the U.S. Government.
