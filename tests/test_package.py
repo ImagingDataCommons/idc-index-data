@@ -48,27 +48,16 @@ def test_parquet_files_are_bundled():
     include parquet files during the build process. These files are required
     (not optional) and should always be present after installation.
     """
-    # Main index parquet file must be present (not optional)
-    assert m.IDC_INDEX_PARQUET_FILEPATH is not None, (
-        "idc_index.parquet must be included in the package"
-    )
-    assert m.IDC_INDEX_PARQUET_FILEPATH.exists(), (
-        f"idc_index.parquet not found at {m.IDC_INDEX_PARQUET_FILEPATH}"
-    )
-    assert m.IDC_INDEX_PARQUET_FILEPATH.is_file(), (
-        "idc_index.parquet must be a file, not a directory"
-    )
-
-    # Prior versions index parquet file must be present (not optional)
-    assert m.PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH is not None, (
-        "prior_versions_index.parquet must be included in the package"
-    )
-    assert m.PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH.exists(), (
-        f"prior_versions_index.parquet not found at {m.PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH}"
-    )
-    assert m.PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH.is_file(), (
-        "prior_versions_index.parquet must be a file, not a directory"
-    )
+    required = {
+        "idc_index.parquet": m.IDC_INDEX_PARQUET_FILEPATH,
+        "prior_versions_index.parquet": m.PRIOR_VERSIONS_INDEX_PARQUET_FILEPATH,
+        "collections_index.parquet": m.COLLECTIONS_INDEX_PARQUET_FILEPATH,
+        "analysis_results_index.parquet": m.ANALYSIS_RESULTS_INDEX_PARQUET_FILEPATH,
+    }
+    for name, path in required.items():
+        assert path is not None, f"{name} must be included in the package"
+        assert path.exists(), f"{name} not found at {path}"
+        assert path.is_file(), f"{name} must be a file, not a directory"
 
 
 def test_parquet_files_are_readable():
@@ -269,12 +258,17 @@ def test_index_metadata_consistency():
 
 
 def test_index_metadata_main_indices_bundled():
-    """Test that main indices (idc_index, prior_versions_index) have parquet and schemas.
+    """Test that main indices have parquet and schemas.
 
     These are the core indices that should always have parquet, schema and SQL files
     bundled in the package when built with default settings.
     """
-    main_indices = ["idc_index", "prior_versions_index"]
+    main_indices = [
+        "idc_index",
+        "prior_versions_index",
+        "collections_index",
+        "analysis_results_index",
+    ]
 
     for index_name in main_indices:
         metadata = m.INDEX_METADATA[index_name]
