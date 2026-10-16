@@ -3,7 +3,16 @@
 # table-description:
 # This table contains one row per DICOM series from IDC
 # for single-frame CT, MR, and PT SOP classes, with boolean
-# columns characterizing the geometric properties of each series.
+# columns characterizing the geometric properties of each series,
+# and — for the series that pass every check — the values needed to
+# place that volume in the patient coordinate system that are not
+# published elsewhere: the origin, the orientation, and the spacing
+# between slice planes (which is not the same as SliceThickness).
+# The in-plane spacing and the image dimensions come from ct_index,
+# mr_index or pt_index, joined on SeriesInstanceUID. The number of
+# slices is the number of in-scope image instances, which equals
+# idc_index.instanceCount except for a few series that also carry
+# instances of another SOP class.
 # The checks determine whether the series forms a regularly-spaced
 # rectilinear 3D volume (consistent orientation, spacing, dimensions,
 # and slice positions). Series that do not pass all checks may still
@@ -305,11 +314,57 @@ geometryChecks AS (
         ABS(ANY_VALUE(cp.y)),
         ABS(ANY_VALUE(cp.z))
       ) / ANY_VALUE(crossProductMagnitude)
-    ) * 180 / ACOS(-1), 2) AS obliquity_degrees
+    ) * 180 / ACOS(-1), 2) AS obliquity_degrees,
+    # -----------------------------------------------------------------------
+    # Geometry VALUES: what it takes to place the volume in patient space
+    # -----------------------------------------------------------------------
+    # Every term below is already computed above for the checks — these
+    # aggregates only keep them instead of discarding them. They are the ones
+    # that exist in no other index: the in-plane spacing and the image
+    # dimensions live in ct_index / mr_index / pt_index, which cover every
+    # series this table covers, and a consumer joins them on SeriesInstanceUID
+    # for Rows/Columns anyway. The spacing between slice planes is the value
+    # that cannot be recovered from any published column: SliceThickness is
+    # the slab thickness, which differs from the spacing whenever the
+    # reconstruction overlaps or leaves a gap.
+    #
+    # The origin and the orientation are taken from the SAME instance, the one
+    # at the minimum slice position, so they describe one real slice rather
+    # than a mix of two.
+    ARRAY_AGG(
+      STRUCT(
+        ippX, ippY, ippZ,
+        x_vector[OFFSET(0)] AS iop0,
+        x_vector[OFFSET(1)] AS iop1,
+        x_vector[OFFSET(2)] AS iop2,
+        y_vector[OFFSET(0)] AS iop3,
+        y_vector[OFFSET(1)] AS iop4,
+        y_vector[OFFSET(2)] AS iop5
+      )
+      ORDER BY slicePosition
+      LIMIT 1
+    )[OFFSET(0)] AS firstSlice,
 
+    # Distance between adjacent slice planes — the same expected_spacing the
+    # uniform_slice_spacing check is made against, NOT SliceThickness.
+    ANY_VALUE(expected_spacing) AS sliceSpacing
   FROM sliceProjection
   GROUP BY
     SeriesInstanceUID
+),
+
+# ---------------------------------------------------------------------------
+# CTE 5 — geometryFlags: combine the individual checks
+# ---------------------------------------------------------------------------
+# Materializes regularly_spaced_3d_volume so the final SELECT can both publish
+# it and use it to gate the geometry values.
+geometryFlags AS (
+  SELECT
+    *,
+    single_orientation AND orthogonal_orientation AND unique_slice_positions
+      AND consistent_in_plane_row AND consistent_in_plane_col AND consistent_pixel_spacing
+      AND consistent_image_dimensions AND uniform_slice_spacing AS regularly_spaced_3d_volume
+  FROM geometryChecks
 )
 
 # ---------------------------------------------------------------------------
@@ -356,8 +411,63 @@ SELECT
   # description:
   # TRUE if all individual checks pass, indicating the series forms a regularly-spaced
   # rectilinear 3D volume that can be loaded directly into a 3D array without resampling
-  single_orientation AND orthogonal_orientation AND unique_slice_positions
-    AND consistent_in_plane_row AND consistent_in_plane_col AND consistent_pixel_spacing
-    AND consistent_image_dimensions AND uniform_slice_spacing AS regularly_spaced_3d_volume
-FROM geometryChecks
+  regularly_spaced_3d_volume,
+
+  # ---------------------------------------------------------------------------
+  # Geometry values — NULL unless the series is a regularly-spaced volume.
+  #
+  # They are only meaningful when every check passes: for a series whose
+  # orientation or spacing varies between instances, one origin and one
+  # orientation do not describe the series, and publishing an arbitrary
+  # instance's values would read as though they did. NULL says "not a volume,
+  # read the instance headers" instead of handing out a quietly wrong geometry.
+  #
+  # Components are published rather than a composed 4x4 matrix on purpose: a
+  # bare matrix fixes an axis order and a handedness convention that the
+  # consumer cannot recover from the numbers, whereas from these each consumer
+  # composes the matrix its own toolkit expects (DICOM LPS, NIfTI/Slicer RAS,
+  # ...). With i the column index, j the row index and k the slice index, and
+  # voxel CENTRES at integer indices:
+  #
+  #   column_i = ImageOrientationPatient[0..2] * PixelSpacing_col_mm
+  #   column_j = ImageOrientationPatient[3..5] * PixelSpacing_row_mm
+  #   column_k = cross(iop[0..2], iop[3..5])    * slice_spacing_mm
+  #   origin   = origin_patient
+  #
+  # PixelSpacing_col_mm / PixelSpacing_row_mm, and the Rows and Columns that
+  # give the volume's in-plane extent, come from ct_index / mr_index /
+  # pt_index joined on SeriesInstanceUID — every series in this table has a
+  # row in one of them.
+  #
+  # The number of slices is the number of in-scope image instances. That is
+  # idc_index.instanceCount for all but a handful of series which also carry
+  # instances of another SOP class; for those, instanceCount is the larger
+  # number.
+  #
+  # k = 0 is the slice at the MINIMUM slice position (ImagePositionPatient
+  # projected onto the slice normal) and k increases along +normal, so sorting
+  # the instances ascending by that projection puts them in index order.
+  # ---------------------------------------------------------------------------
+
+  # description:
+  # ImagePositionPatient (x, y, z in mm) of the slice at the minimum slice position:
+  # the origin of the volume, i.e. the centre of voxel (0, 0, 0);
+  # NULL unless regularly_spaced_3d_volume
+  IF(regularly_spaced_3d_volume,
+     [firstSlice.ippX, firstSlice.ippY, firstSlice.ippZ], NULL) AS origin_patient,
+  # description:
+  # ImageOrientationPatient of that same slice: six direction cosines, the first triplet
+  # along increasing column index and the second along increasing row index;
+  # NULL unless regularly_spaced_3d_volume
+  IF(regularly_spaced_3d_volume,
+     [firstSlice.iop0, firstSlice.iop1, firstSlice.iop2,
+      firstSlice.iop3, firstSlice.iop4, firstSlice.iop5], NULL) AS ImageOrientationPatient,
+  # description:
+  # distance in mm between adjacent slice planes along the slice normal, computed as the
+  # first-to-last slice position divided by (number of slices - 1); this is the spacing of
+  # the reconstructed volume and is NOT the SliceThickness attribute, which is the slab
+  # thickness and differs whenever slices overlap or leave a gap;
+  # NULL unless regularly_spaced_3d_volume
+  IF(regularly_spaced_3d_volume, sliceSpacing, NULL) AS slice_spacing_mm
+FROM geometryFlags
 ORDER BY regularly_spaced_3d_volume DESC, SeriesInstanceUID
