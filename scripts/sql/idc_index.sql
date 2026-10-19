@@ -16,9 +16,12 @@ SELECT
   # short string with the identifier of the collection the series belongs to
   ANY_VALUE(dicom_all.collection_id) AS collection_id,
   # description:
-  # this string is not empty if the specific series is
-  # part of an analysis results collection; analysis results can be added to a
-  #  given collection over time
+  # identifier of the analysis results collection the series belongs to (see
+  # analysis_results_index), or NULL if the series is original data; select
+  # original data only with analysis_result_id IS NULL. Analysis result series
+  # share the collection_id of the collection they analyze, so a filter on
+  # collection_id alone returns both; analysis results can be added to a given
+  # collection over time
   ANY_VALUE(dicom_all.analysis_result_id) AS analysis_result_id,
   # description:
   # identifier of the patient within the collection (DICOM attribute)
