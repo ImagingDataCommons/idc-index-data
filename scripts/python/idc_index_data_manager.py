@@ -211,6 +211,7 @@ class IDCIndexDataManager:
 
         Handles various formats:
         - column_name,
+        - table.column_name,
         - expression AS column_name,
         - ANY_VALUE(column) AS column_name,
         - Complex expressions with nested parentheses
@@ -233,13 +234,15 @@ class IDCIndexDataManager:
 
         # If no AS clause, try to get the column name
         # Remove function calls and get the last word before comma
-        # Handle cases like: column_name, or `column_name` (backtick-quoted reserved words)
+        # Handle cases like: column_name, or `column_name` (backtick-quoted reserved words),
+        # or table.column_name (a qualified column keeps its own name in the output)
         parts = column_def.split()
         if parts:
             # Get the last word that looks like an identifier
             for original_part in reversed(parts):
-                # Remove trailing punctuation and backtick quoting
-                part = original_part.rstrip(",").strip().strip("`")
+                # Remove trailing punctuation, the table qualifier and backtick quoting
+                part = original_part.rstrip(",").strip()
+                part = part.rsplit(".", 1)[-1].strip("`")
                 # Check if it's a valid identifier (word characters only)
                 if re.match(r"^\w+$", part):
                     return part

@@ -140,6 +140,18 @@ FROM table
             == "Columns"
         )
 
+    def test_extract_column_name_table_qualified(self):
+        """Test extracting column name from a table-qualified column without AS."""
+        assert (
+            IDCIndexDataManager._extract_column_name("dicom_all.SeriesInstanceUID,")
+            == "SeriesInstanceUID"
+        )
+        assert (
+            IDCIndexDataManager._extract_column_name("group_item.GraphicType")
+            == "GraphicType"
+        )
+        assert IDCIndexDataManager._extract_column_name("t.`Rows`,") == "Rows"
+
     def test_extract_column_name_complex(self):
         """Test extracting column name from complex expressions."""
         assert (
@@ -183,6 +195,28 @@ FROM table
         assert descriptions["Rows"] == "number of pixel rows per image slice"
         assert "Columns" in descriptions
         assert descriptions["Columns"] == "number of pixel columns per image slice"
+
+    def test_table_qualified_columns(self):
+        """Test parsing descriptions for table-qualified columns without AS."""
+        sql_query = """
+SELECT
+  # description:
+  # unique identifier of the DICOM series (DICOM attribute)
+  dicom_all.SeriesInstanceUID,
+  # description:
+  # coordinate type of the annotations
+  ann.AnnotationCoordinateType,
+FROM table
+"""
+        descriptions = IDCIndexDataManager.parse_column_descriptions(sql_query)
+        assert (
+            descriptions["SeriesInstanceUID"]
+            == "unique identifier of the DICOM series (DICOM attribute)"
+        )
+        assert (
+            descriptions["AnnotationCoordinateType"]
+            == "coordinate type of the annotations"
+        )
 
     def test_no_descriptions(self):
         """Test SQL query with no descriptions."""
