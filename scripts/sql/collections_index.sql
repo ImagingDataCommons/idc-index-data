@@ -28,7 +28,7 @@ SELECT
   sources,
   # description:
   # additional data supporting the collection available in IDC
-  supporting_data,
+  NULLIF(supporting_data, '') AS supporting_data,
   # description:
   # broader initiative/category under which this collection is being shared
   program_id,

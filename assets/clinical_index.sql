@@ -20,7 +20,7 @@ SELECT
   `column`,
   # description:
   # human readable name of the column
-  column_label,
+  NULLIF(column_label, '') AS column_label,
   # description:
   # values encountered in the column
   `values`
