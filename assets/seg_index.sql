@@ -146,7 +146,7 @@ SELECT
   # Type of segmentation as defined in DICOM SegmentationType attribute
   any_value(SegmentationType) AS SegmentationType,
   # description:
-  # Number of segments in the segmentation series obtained by counting distinct DICOM SegmentNumber values in the DICOM SegmentatationSequence
+  # Number of segments in the segmentation series obtained by counting distinct DICOM SegmentNumber values in the DICOM SegmentSequence
   COUNT(DISTINCT (SegmentNumber)) total_segments,
   # description:
   # Segmentation algorithm type as available in DICOM SegmentAlgorithmType
@@ -155,7 +155,11 @@ SELECT
   # Segmentation algorithm name as available in DICOM SegmentAlgorithmName
   string_agg(DISTINCT (SegmentAlgorithmName), ',' ORDER BY SegmentAlgorithmName) AS AlgorithmName,
   # description:
-  # SeriesInstanceUID of the referenced image series that the segmentation applies to
+  # SeriesInstanceUID of the referenced image series that the segmentation applies to,
+  # resolved from the first instance referenced in ReferencedSeriesSequence,
+  # ReferencedImageSequence or SourceImageSequence; NULL when that instance is not
+  # in IDC or the segmentation references none, so exclude NULLs before NOT IN
+  # (or use a LEFT JOIN ... IS NULL anti-join)
   any_value(segmentations.segmented_SeriesInstanceUID)
     AS segmented_SeriesInstanceUID,
   # description:
