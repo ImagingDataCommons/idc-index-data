@@ -25,10 +25,13 @@ WITH
               SegmentSequence,
               SegmentationType
             FROM
-              `bigquery-public-data.idc_v24.dicom_metadata`
+              `bigquery-public-data.idc_v25.dicom_metadata`
             WHERE
               # more reliable than Modality = "SEG"
-              SOPClassUID = "1.2.840.10008.5.1.4.1.1.66.4"
+              # 66.4: Segmentation Storage (BINARY/FRACTIONAL)
+              # 66.7: Label Map Segmentation Storage (LABELMAP)
+              SOPClassUID IN (
+                "1.2.840.10008.5.1.4.1.1.66.4", "1.2.840.10008.5.1.4.1.1.66.7")
           )
         SELECT
           PatientID,
@@ -101,10 +104,11 @@ WITH
           SourceImageSequence[SAFE_OFFSET(0)].ReferencedSOPInstanceUID
             AS sis_one
         FROM
-          `bigquery-public-data.idc_v24.dicom_all`
+          `bigquery-public-data.idc_v25.dicom_all`
         WHERE
           Modality = "SEG"
-          AND SOPClassUID = "1.2.840.10008.5.1.4.1.1.66.4"
+          AND SOPClassUID IN (
+            "1.2.840.10008.5.1.4.1.1.66.4", "1.2.840.10008.5.1.4.1.1.66.7")
       ),
       coalesced_ref AS (
         SELECT
@@ -126,7 +130,7 @@ WITH
     FROM
       coalesced_ref
     JOIN
-      `bigquery-public-data.idc_v24.dicom_all` AS dicom_all
+      `bigquery-public-data.idc_v25.dicom_all` AS dicom_all
       ON
         coalesced_ref.referenced_sop = dicom_all.SOPInstanceUID
     RIGHT JOIN
@@ -142,7 +146,7 @@ SELECT
   # Type of segmentation as defined in DICOM SegmentationType attribute
   any_value(SegmentationType) AS SegmentationType,
   # description:
-  # Number of segments in the segmentation series obtained by counting distinct DICOM SegmentNumber values in the DICOM SegmentatationSequence
+  # Number of segments in the segmentation series obtained by counting distinct DICOM SegmentNumber values in the DICOM SegmentSequence
   COUNT(DISTINCT (SegmentNumber)) total_segments,
   # description:
   # Segmentation algorithm type as available in DICOM SegmentAlgorithmType
@@ -151,7 +155,11 @@ SELECT
   # Segmentation algorithm name as available in DICOM SegmentAlgorithmName
   string_agg(DISTINCT (SegmentAlgorithmName), ',' ORDER BY SegmentAlgorithmName) AS AlgorithmName,
   # description:
-  # SeriesInstanceUID of the referenced image series that the segmentation applies to
+  # SeriesInstanceUID of the referenced image series that the segmentation applies to,
+  # resolved from the first instance referenced in ReferencedSeriesSequence,
+  # ReferencedImageSequence or SourceImageSequence; NULL when that instance is not
+  # in IDC or the segmentation references none, so exclude NULLs before NOT IN
+  # (or use a LEFT JOIN ... IS NULL anti-join)
   any_value(segmentations.segmented_SeriesInstanceUID)
     AS segmented_SeriesInstanceUID,
   # description:

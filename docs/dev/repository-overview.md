@@ -25,17 +25,17 @@ imaging data available in the IDC. Each index:
 
 ### Available Indexes
 
-| Index                    | Description                                | Granularity                       | In Package |
-| ------------------------ | ------------------------------------------ | --------------------------------- | :--------: |
-| `idc_index`              | Main index with core DICOM series metadata | One row per series                |    Yes     |
-| `collections_index`      | Collection-level metadata                  | One row per collection            |    Yes     |
-| `prior_versions_index`   | Historical version tracking                | One row per prior version         |    Yes     |
-| `analysis_results_index` | Analysis results metadata                  | One row per analysis result       |    Yes     |
-| `clinical_index`         | Clinical/tabular data metadata             | One row per clinical table column |     No     |
-| `sm_index`               | Slide Microscopy series metadata           | One row per SM series             |     No     |
-| `sm_instance_index`      | Slide Microscopy instance metadata         | One row per SM instance           |     No     |
-| `seg_index`              | Segmentation series metadata               | One row per SEG series            |     No     |
-| `volume_geometry_index`  | 3D volume geometry validation checks       | One row per CT/MR/PT series       |     No     |
+| Index                    | Description                                                  | Granularity                       | In Package |
+| ------------------------ | ------------------------------------------------------------ | --------------------------------- | :--------: |
+| `idc_index`              | Main index with core DICOM series metadata                   | One row per series                |    Yes     |
+| `collections_index`      | Collection-level metadata                                    | One row per collection            |    Yes     |
+| `prior_versions_index`   | Historical version tracking                                  | One row per prior version         |    Yes     |
+| `analysis_results_index` | Analysis results metadata                                    | One row per analysis result       |    Yes     |
+| `clinical_index`         | Clinical/tabular data metadata                               | One row per clinical table column |     No     |
+| `sm_index`               | Slide Microscopy series metadata                             | One row per SM series             |     No     |
+| `sm_instance_index`      | Slide Microscopy instance metadata                           | One row per SM instance           |     No     |
+| `seg_index`              | Segmentation series metadata                                 | One row per SEG series            |     No     |
+| `volume_geometry_index`  | 3D volume geometry checks + origin/orientation/slice spacing | One row per CT/MR/PT series       |     No     |
 
 **In Package** indicates whether the Parquet data file is bundled in the PyPI
 package. Indexes marked "No" have large Parquet files that are excluded to keep

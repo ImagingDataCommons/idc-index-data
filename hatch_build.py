@@ -100,6 +100,15 @@ class IDCBuildHook(BuildHookInterface):
         if generate_parquet:
             cmd.append("--generate-parquet")
 
+        # Reuse parquet files already generated for an unchanged SQL query rather
+        # than re-running every query against BigQuery. The cache is keyed on the
+        # SHA256 of each SQL file, so a changed query still regenerates. Restore
+        # and upload failures are non-fatal and fall back to BigQuery.
+        cache_bucket = os.environ.get("IDC_INDEX_DATA_CACHE_BUCKET")
+        if cache_bucket:
+            cmd.extend(["--cache-bucket", cache_bucket])
+            self.app.display_info(f"Using GCS parquet cache: {cache_bucket}")
+
         try:
             result = subprocess.run(
                 cmd,

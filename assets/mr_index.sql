@@ -35,7 +35,7 @@ WITH mr_data AS (
     ARRAY_AGG(DISTINCT DiffusionBValue IGNORE NULLS
               ORDER BY DiffusionBValue) AS DiffusionBValue,
     ANY_VALUE(SAFE_CAST(NumberOfTemporalPositions AS INT64)) AS NumberOfTemporalPositions
-  FROM `bigquery-public-data.idc_v24.dicom_all`
+  FROM `bigquery-public-data.idc_v25.dicom_all`
   WHERE SOPClassUID = '1.2.840.10008.5.1.4.1.1.4'
   GROUP BY SeriesInstanceUID
 )

@@ -1,0 +1,92 @@
+name: Refresh HF dataset card
+
+# The dataset card is prose about data that rarely changes, so it needs
+# republishing far more often than a release is tagged. This regenerates it
+# from the Parquet files already on the Hub and uploads README.md alone --
+# no BigQuery index build, no Parquet re-upload.
+#
+# Publishing the data itself is still the `upload-to-hf` job in cd.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      push:
+        description:
+          "Upload the regenerated card (unchecked: render and show the diff
+          only)"
+        type: boolean
+        default: false
+
+# One card writer at a time; never cancel a run that may be mid-upload.
+concurrency:
+  group: hf-card
+  cancel-in-progress: false
+
+jobs:
+  refresh-card:
+    name: Regenerate the dataset card
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write # for the Hugging Face Trusted Publisher token exchange
+      contents: read
+
+    env:
+      HF_REPO: ImagingDataCommons/idc-index-data
+      # `datasets/` prefix because this is not a model repo
+      HF_OIDC_RESOURCE: datasets/ImagingDataCommons/idc-index-data
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyarrow "huggingface_hub>=1.19.0"
+
+      - name: Install the hf CLI
+        run: |
+          curl -LsSf https://hf.co/cli/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      # `hf upload` would do this exchange internally, but the script reads the
+      # repo as well as writing it -- reading needs a token too while the repo
+      # is private -- so it needs the token in hand. Claims are matched
+      # exactly, so this needs its own Trusted Publisher entry with
+      # `workflow` = `hf-card.yml`; the one for cd.yml does not cover it, and
+      # without it the exchange fails with `invalid_grant`.
+      - name: Exchange the OIDC token
+        run: |
+          set -o pipefail
+          token="$(hf auth token)"
+          echo "::add-mask::$token"
+          echo "HF_TOKEN=$token" >> "$GITHUB_ENV"
+
+      - name: Regenerate the card
+        env:
+          PUSH: ${{ inputs.push }}
+        run: |
+          set -o pipefail
+          args=(--repo "$HF_REPO" --output card.md)
+          if [ "$PUSH" = "true" ]; then
+            args+=(--push)
+          fi
+          # Four backticks: the card itself contains ``` fences, and a diff
+          # line carrying one would close a three-backtick block early and
+          # garble the rest of the summary.
+          {
+            echo '````diff'
+            python scripts/hf/refresh_dataset_card.py "${args[@]}"
+            echo '````'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the rendered card
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dataset-card
+          path: card.md
+          if-no-files-found: ignore
+          retention-days: 14

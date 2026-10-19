@@ -33,7 +33,7 @@ WITH pt_data AS (
     ANY_VALUE(SAFE_CAST(SliceThickness AS FLOAT64)) AS SliceThickness,
     ANY_VALUE(NumberOfSlices) AS NumberOfSlices,
     ANY_VALUE(NumberOfTimeSlices) AS NumberOfTimeSlices
-  FROM `bigquery-public-data.idc_v24.dicom_all`
+  FROM `bigquery-public-data.idc_v25.dicom_all`
   WHERE SOPClassUID = '1.2.840.10008.5.1.4.1.1.128'
   GROUP BY SeriesInstanceUID
 )

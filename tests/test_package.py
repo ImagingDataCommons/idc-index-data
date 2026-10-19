@@ -7,7 +7,7 @@ import pandas as pd
 
 import idc_index_data as m
 
-EXPECTED_IDC_INDEX_VERSION = 24
+EXPECTED_IDC_INDEX_VERSION = 25
 
 
 def test_version():

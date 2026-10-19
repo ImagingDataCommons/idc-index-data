@@ -4,6 +4,10 @@ requires = [
   "hatch-vcs",
   "db-dtypes",
   "google-cloud-bigquery",
+  # Needed by the build hook when IDC_INDEX_DATA_CACHE_BUCKET is set, so that
+  # generated parquet files can be restored from the GCS cache instead of being
+  # regenerated from BigQuery.
+  "google-cloud-storage",
   "pandas",
   "pyarrow",
 ]
@@ -113,6 +117,9 @@ report.exclude_also = [
 
 [tool.mypy]
 files = ["src", "tests"]
+# src layout: let mypy resolve `idc_index_data` even when it is handed only a
+# subset of files (e.g. the pre-commit hook passing just the staged tests).
+mypy_path = ["src"]
 python_version = "3.10"
 warn_unused_configs = true
 strict = true
@@ -129,6 +136,15 @@ disallow_incomplete_defs = true
 [[tool.mypy.overrides]]
 module = "idc_index_data._version"
 ignore_missing_imports = true
+
+# numpy>=2.3 ships PEP 695 `type` statements in its bundled stubs, which mypy
+# refuses to parse while type-checking against python_version 3.10. We don't
+# rely on numpy types directly (it is only pulled in transitively), so skip
+# following its stubs rather than pinning numpy back or raising python_version.
+[[tool.mypy.overrides]]
+module = "numpy.*"
+follow_imports = "skip"
+follow_imports_for_stubs = true
 
 
 [tool.ruff]

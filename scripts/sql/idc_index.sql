@@ -7,7 +7,7 @@ WITH aux_series AS (
     SeriesInstanceUID,
     MIN(series_init_idc_version) AS series_init_idc_version,
     MAX(series_revised_idc_version) AS series_revised_idc_version
-  FROM `bigquery-public-data.idc_v24.auxiliary_metadata`
+  FROM `bigquery-public-data.idc_v25.auxiliary_metadata`
   GROUP BY SeriesInstanceUID
 )
 SELECT
@@ -16,9 +16,12 @@ SELECT
   # short string with the identifier of the collection the series belongs to
   ANY_VALUE(dicom_all.collection_id) AS collection_id,
   # description:
-  # this string is not empty if the specific series is
-  # part of an analysis results collection; analysis results can be added to a
-  #  given collection over time
+  # identifier of the analysis results collection the series belongs to (see
+  # analysis_results_index), or NULL if the series is original data; select
+  # original data only with analysis_result_id IS NULL. Analysis result series
+  # share the collection_id of the collection they analyze, so a filter on
+  # collection_id alone returns both; analysis results can be added to a given
+  # collection over time
   ANY_VALUE(dicom_all.analysis_result_id) AS analysis_result_id,
   # description:
   # identifier of the patient within the collection (DICOM attribute)
@@ -49,7 +52,10 @@ SELECT
   # textual description of the study content (DICOM attribute)
   ANY_VALUE(StudyDescription) AS StudyDescription,
   # description:
-  # body part imaged (not applicable for SM series) (DICOM attribute)
+  # body part imaged (not applicable for SM series) (DICOM attribute). For derived
+  # series (SEG, RTSTRUCT) this reflects the source acquisition, not the segmented
+  # anatomy -- what was segmented is recorded in the seg_index table
+  # (SegmentedPropertyType_CodeMeanings) and in rtstruct_index.
   ANY_VALUE(dicom_curated.BodyPartExamined) AS BodyPartExamined,
   # series level attributes
   # description:
@@ -90,6 +96,7 @@ SELECT
     WHEN "1.2.840.10008.5.1.4.1.1.66" THEN "Raw Data Storage"
     WHEN "1.2.840.10008.5.1.4.1.1.66.1" THEN "Spatial Registration Storage"
     WHEN "1.2.840.10008.5.1.4.1.1.66.4" THEN "Segmentation Storage"
+    WHEN "1.2.840.10008.5.1.4.1.1.66.7" THEN "Label Map Segmentation Storage"
     WHEN "1.2.840.10008.5.1.4.1.1.67" THEN "Real World Value Mapping Storage"
     WHEN "1.2.840.10008.5.1.4.1.1.7" THEN "Secondary Capture Image Storage"
     WHEN "1.2.840.10008.5.1.4.1.1.7.2" THEN "Multi-frame Grayscale Byte Secondary Capture Image Storage"
@@ -115,6 +122,7 @@ SELECT
   STRING_AGG(DISTINCT CASE TransferSyntaxUID
     WHEN "1.2.840.10008.1.2" THEN "Implicit VR Little Endian"
     WHEN "1.2.840.10008.1.2.1" THEN "Explicit VR Little Endian"
+    WHEN "1.2.840.10008.1.2.1.99" THEN "Deflated Explicit VR Little Endian"
     WHEN "1.2.840.10008.1.2.2" THEN "Explicit VR Big Endian"
     WHEN "1.2.840.10008.1.2.4.50" THEN "JPEG Baseline"
     WHEN "1.2.840.10008.1.2.4.51" THEN "JPEG Extended"
@@ -126,6 +134,7 @@ SELECT
   END, "," ORDER BY CASE TransferSyntaxUID
     WHEN "1.2.840.10008.1.2" THEN "Implicit VR Little Endian"
     WHEN "1.2.840.10008.1.2.1" THEN "Explicit VR Little Endian"
+    WHEN "1.2.840.10008.1.2.1.99" THEN "Deflated Explicit VR Little Endian"
     WHEN "1.2.840.10008.1.2.2" THEN "Explicit VR Big Endian"
     WHEN "1.2.840.10008.1.2.4.50" THEN "JPEG Baseline"
     WHEN "1.2.840.10008.1.2.4.51" THEN "JPEG Extended"
@@ -135,6 +144,17 @@ SELECT
     WHEN "1.2.840.10008.1.2.4.91" THEN "JPEG 2000"
     ELSE ERROR(CONCAT("Unmapped TransferSyntaxUID: ", TransferSyntaxUID, ". Please add a mapping."))
   END) AS transfer_syntax_name,
+  # description:
+  # intended interpretation of the pixel data, e.g., MONOCHROME2 (grayscale),
+  # RGB or YBR_FULL_422 (color); NULL for non-image objects (e.g., SEG, SR,
+  # RTSTRUCT); comma-separated when a series contains instances with different
+  # values (DICOM attribute)
+  STRING_AGG(DISTINCT PhotometricInterpretation, "," ORDER BY PhotometricInterpretation) AS PhotometricInterpretation,
+  # description:
+  # data representation of pixel sample values: "0" for unsigned integers, "1"
+  # for signed integers; NULL for non-image objects; comma-separated when a
+  # series contains instances with different values (DICOM attribute)
+  STRING_AGG(DISTINCT CAST(PixelRepresentation AS STRING), "," ORDER BY CAST(PixelRepresentation AS STRING)) AS PixelRepresentation,
   # description:
   # manufacturer of the equipment that produced the series (DICOM attribute)
   ANY_VALUE(Manufacturer) AS Manufacturer,
@@ -177,9 +197,9 @@ SELECT
   # total size of the series in megabytes
   SUM(SAFE_CAST(dicom_all.instance_size AS float64))/1000000. AS series_size_MB,
 FROM
-  `bigquery-public-data.idc_v24.dicom_all` AS dicom_all
+  `bigquery-public-data.idc_v25.dicom_all` AS dicom_all
 LEFT JOIN
-  `bigquery-public-data.idc_v24.dicom_metadata_curated` AS dicom_curated
+  `bigquery-public-data.idc_v25.dicom_metadata_curated` AS dicom_curated
 ON
   dicom_all.SOPInstanceUID = dicom_curated.SOPInstanceUID
 LEFT JOIN
