@@ -40,7 +40,7 @@ SELECT
   # patient level attributes:
   # description:
   # age of the subject at the time of imaging (DICOM attribute)
-  ANY_VALUE(PatientAge) AS PatientAge,
+  ANY_VALUE(NULLIF(PatientAge, '')) AS PatientAge,
   # description:
   # subject sex (DICOM attribute)
   ANY_VALUE(PatientSex) AS PatientSex,
@@ -166,7 +166,7 @@ SELECT
   ANY_VALUE(SAFE_CAST(SeriesDate AS STRING)) AS SeriesDate,
   # description:
   # textual description of the series content (DICOM attribute)
-  ANY_VALUE(SeriesDescription) AS SeriesDescription,
+  ANY_VALUE(NULLIF(SeriesDescription, '')) AS SeriesDescription,
   # description:
   # series number (DICOM attribute)
   ANY_VALUE(SeriesNumber) AS SeriesNumber,

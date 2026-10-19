@@ -12,7 +12,7 @@
 WITH pt_data AS (
   SELECT
     SeriesInstanceUID,
-    ANY_VALUE(ARRAY_TO_STRING(SeriesType, '/')) AS SeriesType,
+    ANY_VALUE(NULLIF(ARRAY_TO_STRING(SeriesType, '/'), '')) AS SeriesType,
     ANY_VALUE(Units) AS Units,
     ANY_VALUE(DecayCorrection) AS DecayCorrection,
     ANY_VALUE(CorrectedImage) AS CorrectedImage,
@@ -46,7 +46,8 @@ SELECT
   # acquisition type of the series as defined in DICOM SeriesType attribute,
   # encoded as a slash-separated string of the two type values
   # (e.g., STATIC/IMAGE, DYNAMIC/IMAGE, GATED/IMAGE, WHOLE BODY/IMAGE);
-  # constant across instances — aggregated with ANY_VALUE(ARRAY_TO_STRING(SeriesType, '/'))
+  # constant across instances — aggregated with ANY_VALUE(NULLIF(ARRAY_TO_STRING(SeriesType, '/'), ''));
+  # NULL when SeriesType is absent or empty
   SeriesType,
 
   # description:
