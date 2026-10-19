@@ -17,6 +17,9 @@ if TYPE_CHECKING:
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Part of every cache key: see IDCIndexDataManager._compute_cache_key
+_GENERATOR_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+
 
 class IDCIndexDataManager:
     def __init__(self, project_id: str):
@@ -244,30 +247,38 @@ class IDCIndexDataManager:
         return None
 
     @staticmethod
-    def _compute_file_hash(file_path: str) -> str:
-        with Path(file_path).open("rb") as f:
-            return hashlib.sha256(f.read()).hexdigest()
+    def _compute_cache_key(sql_file_path: str) -> str:
+        """Returns the GCS cache key for the artifacts generated from one SQL file.
+
+        The artifacts depend on the SQL and on this script, which turns the query
+        result into files (e.g., it parses the column descriptions written to
+        _schema.json). Both go into the key, so a change to either regenerates the
+        artifacts instead of restoring ones built by the previous code.
+        """
+        key = hashlib.sha256(Path(sql_file_path).read_bytes())
+        key.update(_GENERATOR_HASH.encode())
+        return key.hexdigest()
 
     def _try_restore_from_cache(
         self,
         storage_client,
         cache_bucket: str,
-        sql_hash: str,
+        cache_key: str,
         output_basename: str,
         output_dir: Path,
     ) -> bool:
         """Download cached artifacts from GCS. Returns True on cache hit."""
         bucket = storage_client.bucket(cache_bucket)
-        cache_prefix = f"cache/{sql_hash}/{output_basename}"
+        cache_prefix = f"cache/{cache_key}/{output_basename}"
         suffixes = [".parquet", "_schema.json", ".sql"]
         blobs = {s: bucket.blob(f"{cache_prefix}{s}") for s in suffixes}
         if not all(blob.exists() for blob in blobs.values()):
-            logger.info("Cache miss for %s (hash %.8s)", output_basename, sql_hash)
+            logger.info("Cache miss for %s (hash %.8s)", output_basename, cache_key)
             return False
         logger.info(
             "Cache hit for %s (hash %.8s), restoring from GCS",
             output_basename,
-            sql_hash,
+            cache_key,
         )
         for suffix, blob in blobs.items():
             blob.download_to_filename(str(output_dir / f"{output_basename}{suffix}"))
@@ -277,20 +288,20 @@ class IDCIndexDataManager:
         self,
         storage_client,
         cache_bucket: str,
-        sql_hash: str,
+        cache_key: str,
         output_basename: str,
         output_dir: Path,
     ) -> None:
         """Upload generated artifacts to GCS cache."""
         bucket = storage_client.bucket(cache_bucket)
-        cache_prefix = f"cache/{sql_hash}/{output_basename}"
+        cache_prefix = f"cache/{cache_key}/{output_basename}"
         for suffix in [".parquet", "_schema.json", ".sql"]:
             local_path = output_dir / f"{output_basename}{suffix}"
             if local_path.exists():
                 bucket.blob(f"{cache_prefix}{suffix}").upload_from_filename(
                     str(local_path)
                 )
-        logger.info("Cached %s in GCS (hash %.8s)", output_basename, sql_hash)
+        logger.info("Cached %s in GCS (hash %.8s)", output_basename, cache_key)
 
     def execute_sql_query(
         self, file_path: str
@@ -442,7 +453,7 @@ class IDCIndexDataManager:
             generate_parquet: Whether to generate Parquet files
             output_dir: Optional directory path for the output files
             gcs_cache_bucket: GCS bucket name for caching generated parquet files.
-                Cache key is the SHA256 hash of the SQL file content.
+                Cache key is the SHA256 of the SQL file content and of this script.
         """
 
         scripts_dir = Path(__file__).parent.parent
@@ -470,15 +481,15 @@ class IDCIndexDataManager:
                 if str(file_name).endswith(".sql"):
                     file_path = Path(directory) / file_name
 
-                    sql_hash = None
+                    cache_key = None
                     if storage_client and gcs_cache_bucket and output_dir:
-                        sql_hash = self._compute_file_hash(str(file_path))
+                        cache_key = self._compute_cache_key(str(file_path))
                         output_basename = file_path.stem
                         try:
                             if self._try_restore_from_cache(
                                 storage_client,
                                 gcs_cache_bucket,
-                                sql_hash,
+                                cache_key,
                                 output_basename,
                                 output_dir,
                             ):
@@ -535,14 +546,14 @@ class IDCIndexDataManager:
                         if (
                             storage_client
                             and gcs_cache_bucket
-                            and sql_hash
+                            and cache_key
                             and output_dir
                         ):
                             try:
                                 self._upload_to_cache(
                                     storage_client,
                                     gcs_cache_bucket,
-                                    sql_hash,
+                                    cache_key,
                                     output_basename,
                                     output_dir,
                                 )
@@ -600,7 +611,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--cache-bucket",
         default=None,
-        help="GCS bucket name for caching generated parquet files (cache key = SHA256 of SQL file)",
+        help="GCS bucket name for caching generated parquet files (cache key = SHA256 of the SQL file and of this script)",
     )
     parser.add_argument(
         "--retrieve-latest-idc-release-version",
