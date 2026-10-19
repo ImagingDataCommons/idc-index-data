@@ -102,8 +102,10 @@ class IDCBuildHook(BuildHookInterface):
 
         # Reuse parquet files already generated for an unchanged SQL query rather
         # than re-running every query against BigQuery. The cache is keyed on the
-        # SHA256 of each SQL file, so a changed query still regenerates. Restore
-        # and upload failures are non-fatal and fall back to BigQuery.
+        # SHA256 of each SQL file and of idc_index_data_manager.py, so a changed
+        # query or a changed generator (e.g., the description parser) still
+        # regenerates. Restore and upload failures are non-fatal and fall back to
+        # BigQuery.
         cache_bucket = os.environ.get("IDC_INDEX_DATA_CACHE_BUCKET")
         if cache_bucket:
             cmd.extend(["--cache-bucket", cache_bucket])
