@@ -85,5 +85,31 @@ def test_real_sql_files() -> None:
                 print(f"✗ Missing expected column: {col}")
 
 
+def test_prior_versions_index_descriptions() -> None:
+    """prior_versions_index.sql is procedural; its static final SELECT must still be
+    documented like any other index, every output column included."""
+    sql_path = (
+        Path(__file__).parent.parent / "scripts" / "sql" / "prior_versions_index.sql"
+    )
+    sql_query = sql_path.read_text()
+
+    assert IDCIndexDataManager.parse_table_description(sql_query)
+    descriptions = IDCIndexDataManager.parse_column_descriptions(sql_query)
+    assert set(descriptions) == {
+        "collection_id",
+        "PatientID",
+        "SeriesInstanceUID",
+        "StudyInstanceUID",
+        "Modality",
+        "gcs_bucket",
+        "crdc_series_uuid",
+        "series_size_MB",
+        "series_aws_url",
+        "aws_bucket",
+        "min_idc_version",
+        "max_idc_version",
+    }
+
+
 if __name__ == "__main__":
     test_real_sql_files()
