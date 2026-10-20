@@ -532,16 +532,9 @@ class IDCIndexDataManager:
                         logger.debug("Created Parquet file: %s", parquet_file_path)
 
                         # When generating parquet, also save schema and SQL files
-                        # Skip parsing descriptions for prior_versions_index as it has dynamic SQL
-                        if output_basename != "prior_versions_index":
-                            self.save_schema_to_json(
-                                schema, output_basename, sql_query, output_dir
-                            )
-                        else:
-                            # For prior_versions_index, save schema without descriptions
-                            self.save_schema_to_json(
-                                schema, output_basename, None, output_dir
-                            )
+                        self.save_schema_to_json(
+                            schema, output_basename, sql_query, output_dir
+                        )
                         # Save SQL query to file
                         self.save_sql_query(sql_query, output_basename, output_dir)
 

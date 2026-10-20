@@ -84,9 +84,7 @@ Excluded from the upload:
 - **`prior_versions_index.parquet`** -- catalogs series that are _no longer_ in
   IDC, contradicting what the rest of the dataset claims to be: one row per
   series in the current release. It is also one of the five indexes the PyPI
-  wheel ships, so every `idc-index` install already has it locally, and its
-  sidecar carries no column descriptions (see below), so it would have been the
-  one config the Hub could not document.
+  wheel ships, so every `idc-index` install already has it locally.
 
 All three are listed in `EXCLUDED_INDICES` in `prepare_hf_payload.py`, leaving
 16 configs.
@@ -181,9 +179,7 @@ Every published index has a `table_description` in its sidecar, so no
 hand-written descriptions are carried here. A new index whose SQL lacks a
 `# table-description:` comment renders an empty cell in the Indices table; fix
 it in the SQL rather than in the generator, so the PyPI and GCS sidecars get the
-text too. (`prior_versions_index.sql` is the known offender -- procedural SQL
-commented with `--`, which the parser in `idc_index_data_manager.py` does not
-recognise -- and it is excluded from the upload for other reasons anyway.)
+text too.
 
 Preview the card without publishing:
 
