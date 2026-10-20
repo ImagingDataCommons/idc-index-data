@@ -328,7 +328,6 @@ class IDCIndexDataManager:
             )
             logger.error(e)
             raise
-        query_job_result = self.client.query(sql_query).result()
         schema = query_job_result.schema  # Get schema from BigQuery QueryJob
         index_df = query_job_result.to_dataframe()
         output_basename = Path(file_path).name.split(".")[0]
