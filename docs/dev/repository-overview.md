@@ -249,6 +249,20 @@ sources of access statistics are available instead:
   `idc-index-data-artifacts_usage_` / `idc-index-data-artifacts_storage_`. The
   log bucket has no lifecycle rule, so logs are kept indefinitely.
 
+To analyze the usage logs, run:
+
+```bash
+uv run scripts/python/export_gcs_usage_logs.py --weeks 4
+```
+
+It downloads new log files to `~/.cache/idc-index-data/gcs-usage-logs/`
+(application default credentials must be able to read the log bucket), writes
+all requests to `~/.cache/idc-index-data/gcs_usage_logs.parquet` with derived
+`request_time`, `release`, `file_name`, `index_name` and `client` columns, and
+prints downloads by week, index, release path and client as markdown tables. Use
+`--no-sync` to skip downloading. The logs contain client IP addresses, so keep
+them out of the repository and do not publish the raw data.
+
 Usage logging was configured manually, not by any workflow:
 
 ```bash
