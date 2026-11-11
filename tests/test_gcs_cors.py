@@ -4,11 +4,16 @@ These tests verify that:
 1. The GCS bucket is publicly readable (no auth required).
 2. The CORS policy allows GET/HEAD with Range requests from any origin.
 3. Range requests work correctly (partial content delivery).
+4. Objects are stored without gzip encoding, so the MD5 that GCS reports
+   matches the downloaded file, and replaced objects are cached only briefly.
 """
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import io
+import re
 
 import pytest
 import requests
@@ -73,9 +78,16 @@ def test_accept_ranges_header_present():
 # ---------------------------------------------------------------------------
 
 
+# requests sends "Accept-Encoding: gzip" by default. For a gzip-encoded object
+# GCS then serves the stored compressed bytes and honours Range against them,
+# which hides the fact that clients such as DuckDB, which don't accept gzip,
+# get the whole file. Range tests therefore ask for the bytes as stored.
+IDENTITY = {"Accept-Encoding": "identity"}
+
+
 def test_range_request_returns_206():
     """Partial GET (Range: bytes=0-1023) must return 206 Partial Content."""
-    resp = _get(TEST_FILE, headers={"Range": "bytes=0-1023"})
+    resp = _get(TEST_FILE, headers={**IDENTITY, "Range": "bytes=0-1023"})
     assert resp.status_code == 206, (
         f"Expected 206, got {resp.status_code}. Range requests may be broken."
     )
@@ -84,10 +96,61 @@ def test_range_request_returns_206():
 
 def test_range_response_has_content_range_header():
     """206 response must include Content-Range header."""
-    resp = _get(TEST_FILE, headers={"Range": "bytes=0-1023"})
+    resp = _get(TEST_FILE, headers={**IDENTITY, "Range": "bytes=0-1023"})
     assert resp.status_code == 206
     cr = resp.headers.get("Content-Range", "")
     assert cr.startswith("bytes 0-1023/"), f"Unexpected Content-Range: {cr!r}"
+
+
+def test_range_request_returns_parquet_bytes():
+    """The first 4 bytes of a Parquet file are the magic number PAR1."""
+    resp = _get(TEST_FILE, headers={**IDENTITY, "Range": "bytes=0-3"})
+    assert resp.status_code == 206
+    assert resp.content == b"PAR1", (
+        f"Expected b'PAR1', got {resp.content!r}. "
+        "A gzip header (b'\\x1f\\x8b...') means the object is stored gzip-encoded."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Object metadata
+# ---------------------------------------------------------------------------
+
+
+def test_object_is_not_stored_gzip_encoded():
+    """Stored gzip encoding breaks Range requests and the MD5 check."""
+    resp = _head(TEST_FILE)
+    assert resp.status_code == 200
+    stored = resp.headers.get("x-goog-stored-content-encoding", "identity")
+    assert stored == "identity", (
+        f"Object is stored with Content-Encoding {stored!r}; "
+        "upload it with gzip disabled."
+    )
+
+
+def test_reported_md5_matches_downloaded_file():
+    """Clients verify downloads against the MD5 that GCS reports."""
+    resp = _get(TEST_FILE, headers=IDENTITY)
+    assert resp.status_code == 200
+    hashes = dict(
+        h.strip().split("=", 1)
+        for h in resp.headers.get("x-goog-hash", "").split(",")
+        if "=" in h
+    )
+    assert "md5" in hashes, "GCS reports no MD5 (is this a composite object?)"
+    digest = hashlib.md5(resp.content, usedforsecurity=False).digest()
+    assert base64.b64encode(digest).decode() == hashes["md5"]
+
+
+def test_cache_lifetime_is_short():
+    """A replaced object must not be served from cache for long."""
+    resp = _head(TEST_FILE)
+    assert resp.status_code == 200
+    cache_control = resp.headers.get("Cache-Control", "")
+    match = re.search(r"max-age=(\d+)", cache_control)
+    assert "no-store" in cache_control or (match and int(match.group(1)) <= 60), (
+        f"Cache-Control {cache_control!r} allows caching for more than 60 seconds"
+    )
 
 
 # ---------------------------------------------------------------------------
