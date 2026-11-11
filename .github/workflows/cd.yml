@@ -184,12 +184,21 @@ jobs:
         with:
           credentials_json: "${{ secrets.GCS_SERVICE_ACCOUNT_KEY }}"
 
+      # gzip is off because the action's default (on) stores objects with
+      # Content-Encoding: gzip. GCS then hashes the compressed bytes, so its MD5
+      # can't be checked against the downloaded file, and it ignores Range
+      # requests from clients that don't accept gzip. Parquet is already
+      # zstd-compressed, so gzip saved about 0.4%. The short max-age keeps a
+      # replaced object from being served from cache for the default hour.
       - name: Upload artifacts to GCS bucket
         uses: google-github-actions/upload-cloud-storage@v3
         with:
           path: release_artifacts
           destination:
             idc-index-data-artifacts/${{ github.event.release.tag_name }}
+          gzip: false
+          headers: |-
+            cache-control: public, max-age=60
 
       - name: Update current/ folder with latest release
         run: |
