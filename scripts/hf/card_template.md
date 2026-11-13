@@ -235,8 +235,8 @@ pads, flips and rotates it (as required) onto the image grid. It raises
 rounding in stored positions alone can occasionally cause that. In such cases,
 `match_geometry(ct, position_tol=tol)` can be used to loosen the tolerance to
 accept them, where by default `tol=1e-2`. Loosen `position_tol` no further than
-you need: a large tolerance can hide a segmentation that is genuinely
-misaligned with its image and requires resampling.
+you need: a large tolerance can hide a segmentation that is genuinely misaligned
+with its image and requires resampling.
 
 `combine_segments=True` returns a label map, in which each voxel holds the
 number of the segment it belongs to, or 0. NLSTSeg segments each lesion
