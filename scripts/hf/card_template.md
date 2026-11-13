@@ -109,10 +109,10 @@ spacing and gantry tilt are all common.
 
 [highdicom](https://highdicom.readthedocs.io/) handles this, and returns a
 `Volume` that keeps voxel spacing and the patient-space affine next to the
-array. The examples below were tested with highdicom 0.28.2.
+array. The examples below were tested with highdicom 0.29.0.
 
 ```bash
-pip install "highdicom>=0.28.2" duckdb idc-index torch
+pip install "highdicom>=0.29.0" duckdb idc-index torch
 ```
 
 Start in the catalog. `volume_geometry_index` flags every CT, MR and PET series
@@ -232,11 +232,11 @@ A segmentation often covers fewer slices than its image, is rotated relative to
 the source image, or stores the slices in the opposite order; `match_geometry`
 pads, flips and rotates it (as required) onto the image grid. It raises
 `RuntimeError` when the two grids are offset by a fraction of a voxel, and
-rounding in stored positions alone can cause that: some `nsclc_radiomics`
-segmentations sit 2e-5 voxels off their CT, just beyond the default tolerance,
-and `match_geometry(ct, tol=1e-4)` accepts them. Loosen `tol` no further than
-you need: a large tolerance can hide a segmentation that is genuinely misaligned
-with its image.
+rounding in stored positions alone can occasionally cause that. In such cases,
+`match_geometry(ct, position_tol=tol)` can be used to loosen the tolerance to
+accept them, where by default `tol=1e-2`. Loosen `position_tol` no further than
+you need: a large tolerance can hide a segmentation that is genuinely
+misaligned with its image and requires resampling.
 
 `combine_segments=True` returns a label map, in which each voxel holds the
 number of the segment it belongs to, or 0. NLSTSeg segments each lesion
